@@ -6,12 +6,11 @@
 import copy
 import logging
 from pathlib import Path
+from chunk_unity.models.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
 from typing import OrderedDict
 
-from fairseq import utils
 from fairseq.models import (
-    FairseqEncoder,
     FairseqEncoderModel,
     FairseqLanguageModel,
     register_model,
@@ -19,13 +18,12 @@ from fairseq.models import (
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
 from ctc_unity.modules.ctc_decoder_with_transformer_layer import (
-    CTCDecoderWithTransformerLayer,
+    CTCDecoderWithTransformerLayer
 )
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
 from ctc_unity.modules.transformer_encoder import (
-    UniTransformerEncoderNoEmb,
+    UniTransformerEncoderNoEmb
 )
-from chunk_unity.models.s2s_conformer import ChunkS2SConformerEncoder
 from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
     s2ut_architecture_base,
@@ -39,9 +37,7 @@ from ctc_unity.modules.ctc_transformer_unit_decoder import CTCTransformerUnitDec
 
 from fairseq import checkpoint_utils
 
-
 logger = logging.getLogger(__name__)
-
 
 def multitask_text_transformer_decoder_arch(
     args, decoder_layers, decoder_embed_dim=256, decoder_attention_heads=4
@@ -206,7 +202,7 @@ class StreamSpeechModel(S2UTTransformerModel):
     
     @classmethod
     def _build_encoder(cls, args):
-        encoder = ChunkS2SConformerEncoder(args)
+        encoder = StreamingSpeechEncoder(args)
         pretraining_path = getattr(args, "load_pretrained_encoder_from", None)
         if pretraining_path is not None:
             if not Path(pretraining_path).exists():

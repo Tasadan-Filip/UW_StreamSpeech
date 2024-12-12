@@ -9,32 +9,23 @@ from pathlib import Path
 
 import torch
 from fairseq import utils
-from fairseq import checkpoint_utils
 from fairseq.data.data_utils import lengths_to_padding_mask
-from fairseq.models import FairseqEncoder, register_model, register_model_architecture
+from fairseq.models import FairseqEncoder
 
-# from fairseq.models.speech_to_text.modules.convolution import (
-#     Conv1dSubsampler,
-#     Conv2dSubsampler,
-# )
 from chunk_unity.modules.convolution import (
     Conv1dSubsampler,
     Conv2dSubsampler,
 )
 from fairseq.models.speech_to_text.s2t_transformer import (
-    S2TTransformerEncoder,
-    S2TTransformerModel,
-)
-from fairseq.models.speech_to_text.s2t_transformer import (
-    base_architecture as transformer_base_architecture,
+    S2TTransformerEncoder
 )
 from fairseq.modules import PositionalEmbedding, RelPositionalEncoding
 from chunk_unity.modules.conformer_layer import ChunkConformerEncoderLayer
+from fairseq.models.transformer import Linear
 
 logger = logging.getLogger(__name__)
 
-
-class ChunkS2TConformerEncoder(FairseqEncoder):
+class StreamingSpeechEncoder(FairseqEncoder):
     """Conformer Encoder for speech translation based on https://arxiv.org/abs/2005.08100"""
 
     def __init__(self, args):
@@ -108,6 +99,12 @@ class ChunkS2TConformerEncoder(FairseqEncoder):
 
         self._chunk_mask = torch.empty(0)
 
+        self.spk_emb_proj = None
+        if args.target_speaker_embed:
+            self.spk_emb_proj = Linear(
+                args.encoder_embed_dim + args.speaker_embed_dim, args.encoder_embed_dim
+            )
+
     def _forward(self, src_tokens, src_lengths, return_all_hiddens=False):
         """
         Args:
@@ -162,21 +159,29 @@ class ChunkS2TConformerEncoder(FairseqEncoder):
             "src_lengths": [],
         }
 
-    def forward(self, src_tokens, src_lengths, return_all_hiddens=False):
+    def forward(self, src_tokens, src_lengths, tgt_speaker=None, return_all_hiddens=False):
         if self.num_updates < self.encoder_freezing_updates:
             with torch.no_grad():
-                x = self._forward(
+                out = self._forward(
                     src_tokens,
                     src_lengths,
                     return_all_hiddens=return_all_hiddens,
                 )
         else:
-            x = self._forward(
+            out = self._forward(
                 src_tokens,
                 src_lengths,
                 return_all_hiddens=return_all_hiddens,
             )
-        return x
+
+        if self.spk_emb_proj:
+            x = out["encoder_out"][0]
+            seq_len, bsz, _ = x.size()
+            tgt_speaker_emb = tgt_speaker.view(1, bsz, -1).expand(seq_len, bsz, -1)
+            x = self.spk_emb_proj(torch.cat([x, tgt_speaker_emb], dim=2))
+            out["encoder_out"][0] = x
+
+        return out
 
     def buffered_future_mask(self, tensor):
         dim = tensor.size(0)
@@ -219,82 +224,3 @@ class ChunkS2TConformerEncoder(FairseqEncoder):
     def set_num_updates(self, num_updates):
         super().set_num_updates(num_updates)
         self.num_updates = num_updates
-
-
-@register_model("chunk_s2t_conformer")
-class ChunkS2TConformerModel(S2TTransformerModel):
-    def __init__(self, encoder, decoder):
-        super().__init__(encoder, decoder)
-
-    @staticmethod
-    def add_args(parser):
-        S2TTransformerModel.add_args(parser)
-        parser.add_argument(
-            "--input-feat-per-channel",
-            type=int,
-            metavar="N",
-            help="dimension of input features per channel",
-        )
-        parser.add_argument(
-            "--input-channels",
-            type=int,
-            metavar="N",
-            help="number of chennels of input features",
-        )
-        parser.add_argument(
-            "--depthwise-conv-kernel-size",
-            type=int,
-            metavar="N",
-            help="kernel size of depthwise convolution layers",
-        )
-        parser.add_argument(
-            "--attn-type",
-            type=str,
-            metavar="STR",
-            help="If not specified uses fairseq MHA. Other valid option is espnet",
-        )
-        parser.add_argument(
-            "--pos-enc-type",
-            type=str,
-            metavar="STR",
-            help="Must be specified in addition to attn-type=espnet for rel_pos and rope",
-        )
-        parser.add_argument(
-            "--chunk-size",
-            type=int,
-            metavar="N",
-            default=-1,
-            help="chunk size",
-        )
-
-    @classmethod
-    def build_encoder(cls, args):
-        encoder = ChunkS2TConformerEncoder(args)
-        pretraining_path = getattr(args, "load_pretrained_encoder_from", None)
-        if pretraining_path is not None:
-            if not Path(pretraining_path).exists():
-                logger.warning(
-                    f"skipped pretraining because {pretraining_path} does not exist"
-                )
-            else:
-                encoder = checkpoint_utils.load_pretrained_component_from_model(
-                    component=encoder, checkpoint=pretraining_path
-                )
-                logger.info(f"loaded pretrained encoder from: {pretraining_path}")
-        return encoder
-
-
-@register_model_architecture("chunk_s2t_conformer", "chunk_s2t_conformer")
-def conformer_base_architecture(args):
-    args.attn_type = getattr(args, "attn_type", None)
-    args.pos_enc_type = getattr(args, "pos_enc_type", "abs")
-    args.input_feat_per_channel = getattr(args, "input_feat_per_channel", 80)
-    args.input_channels = getattr(args, "input_channels", 1)
-    args.max_source_positions = getattr(args, "max_source_positions", 6000)
-    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 256)
-    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 2048)
-    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 4)
-    args.dropout = getattr(args, "dropout", 0.1)
-    args.encoder_layers = getattr(args, "encoder_layers", 16)
-    args.depthwise_conv_kernel_size = getattr(args, "depthwise_conv_kernel_size", 31)
-    transformer_base_architecture(args)
