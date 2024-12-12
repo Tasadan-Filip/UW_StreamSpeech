@@ -11,7 +11,7 @@ from fairseq import utils
 from fairseq.data.data_utils import lengths_to_padding_mask
 from fairseq.models import FairseqEncoder
 
-from chunk_unity.modules.convolution import (
+from ctc_unity.modules.convolution import (
     Conv1dSubsampler
 )
 from fairseq.models.speech_to_text.s2t_transformer import (

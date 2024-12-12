@@ -6,7 +6,7 @@
 import copy
 import logging
 from pathlib import Path
-from chunk_unity.models.streaming_speech_encoder import StreamingSpeechEncoder
+from ctc_unity.models.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
 from typing import OrderedDict
 
