@@ -4,18 +4,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import torch
 from torch import Tensor
 
-from fairseq import checkpoint_utils, utils
-from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
-from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
-from fairseq.models.speech_to_text import S2TTransformerEncoder
-from fairseq.models.text_to_speech import TTSTransformerDecoder
-from fairseq.models.transformer import Linear, TransformerModelBase
+from fairseq.models.transformer import Linear
 
 from ctc_unity.modules.transformer_decoder import TransformerDecoder
 
@@ -23,7 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class CTCTransformerUnitDecoder(TransformerDecoder):
-    """Based on Transformer decoder, with support to decoding stacked units"""
+    """
+    Unit CTC Decoder
+
+    Based on Transformer decoder, with support to decoding stacked units
+    """
 
     def __init__(
         self,

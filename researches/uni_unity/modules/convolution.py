@@ -8,7 +8,6 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from uni_unity.modules.causal_conv1d import CausalConv1d
 
 
 class Conv1dSubsampler(nn.Module):

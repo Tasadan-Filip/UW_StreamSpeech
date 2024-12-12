@@ -9,7 +9,6 @@ from pathlib import Path
 import torch
 
 from fairseq import checkpoint_utils
-from fairseq.models import register_model, register_model_architecture
 from fairseq.models.speech_to_speech.s2s_transformer import S2UTTransformerModel
 from uni_unity.models.s2t_conformer import UniS2TConformerEncoder
 from fairseq.models.transformer import Linear

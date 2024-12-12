@@ -15,16 +15,13 @@ from fairseq.models import (
     FairseqEncoderDecoderModel,
     FairseqEncoderModel,
     FairseqLanguageModel,
-    register_model,
-    register_model_architecture,
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
 from fairseq.models.speech_to_text import S2TTransformerEncoder
-from fairseq.models.text_to_speech import TTSTransformerDecoder
 from fairseq.models.transformer import Linear, TransformerModelBase
 
-from uni_unity.modules.transformer_decoder import TransformerDecoder
+from uni_unity.modules.transformer_decoder import TransformerDecoder as UniTransformerDecoder
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +54,7 @@ class S2STransformerEncoder(S2TTransformerEncoder):
         return out
 
 
-class TransformerUnitDecoder(TransformerDecoder):
+class TransformerUnitDecoder(UniTransformerDecoder):
     """Based on Transformer decoder, with support to decoding stacked units"""
 
     def __init__(
@@ -177,7 +174,7 @@ class S2STransformerMultitaskModelBase(FairseqEncoderDecoderModel):
         decoder_args.encoder_embed_dim = in_dim
         if args.decoder_type == "transformer":
             base_multitask_text_transformer_decoder_arch(decoder_args)
-            task_decoder = TransformerDecoder(
+            task_decoder = UniTransformerDecoder(
                 decoder_args,
                 tgt_dict,
                 embed_tokens=TransformerModelBase.build_embedding(

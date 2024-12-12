@@ -17,7 +17,6 @@ from uni_unity.modules.espnet_multihead_attention import (
 )
 
 from fairseq.utils import get_activation_fn
-from uni_unity.modules.causal_conv1d import CausalConv1d
 
 
 class ConvolutionModule(torch.nn.Module):
@@ -310,17 +309,3 @@ class UniConformerEncoderLayer(torch.nn.Module):
         x = self.final_layer_norm(x)
         return x, (attn, layer_result)
 
-
-class ConformerWav2Vec2EncoderLayer(UniConformerEncoderLayer):
-    """Encoder layer for Wav2vec2 encoder"""
-
-    def forward(
-        self,
-        x: torch.Tensor,
-        self_attn_mask: torch.Tensor = None,
-        self_attn_padding_mask: torch.Tensor = None,
-        need_weights: bool = False,
-        att_args=None,
-        position_emb=None,
-    ):
-        return super().forward(x, self_attn_padding_mask, position_emb)
