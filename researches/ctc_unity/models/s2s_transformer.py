@@ -14,14 +14,11 @@ from fairseq import checkpoint_utils, utils
 from fairseq.models import (
     FairseqEncoderDecoderModel,
     FairseqEncoderModel,
-    FairseqLanguageModel,
-    register_model,
-    register_model_architecture,
+    FairseqLanguageModel
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
 from fairseq.models.speech_to_text import S2TTransformerEncoder
-from fairseq.models.text_to_speech import TTSTransformerDecoder
 from fairseq.models.transformer import Linear, TransformerModelBase
 
 from uni_unity.modules.transformer_decoder import TransformerDecoder
@@ -238,7 +235,7 @@ class S2STransformerMultitaskModelBase(FairseqEncoderDecoderModel):
         )
 
 
-class S2UTTransformerModel(S2STransformerMultitaskModelBase):
+class S2STransformerModelBase(S2STransformerMultitaskModelBase):
     """
     Direct speech-to-speech translation model with Transformer encoder + Transformer discrete unit decoder
     https://arxiv.org/abs/2107.05604

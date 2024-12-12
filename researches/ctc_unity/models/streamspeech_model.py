@@ -28,8 +28,8 @@ from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
     s2ut_architecture_base,
 )
-from chunk_unity.models.s2s_transformer import (
-    S2UTTransformerModel
+from ctc_unity.models.s2s_transformer import (
+    S2STransformerModelBase
 )
 from fairseq.models.transformer import TransformerModelBase
 from ctc_unity.modules.transformer_decoder import TransformerDecoder
@@ -49,7 +49,7 @@ def multitask_text_transformer_decoder_arch(
 
 
 @register_model("streamspeech")
-class StreamSpeechModel(S2UTTransformerModel):
+class StreamSpeechModel(S2STransformerModelBase):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
     """
@@ -100,7 +100,7 @@ class StreamSpeechModel(S2UTTransformerModel):
             metavar="N",
         )
 
-        S2UTTransformerModel.add_args(parser)
+        S2STransformerModelBase.add_args(parser)
         
         parser.add_argument(
             "--depthwise-conv-kernel-size",
