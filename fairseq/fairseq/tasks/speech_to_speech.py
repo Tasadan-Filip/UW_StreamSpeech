@@ -341,12 +341,11 @@ class SpeechToSpeechTask(LegacyFairseqTask):
 
         model = super().build_model(args, from_checkpoint)
 
-        if len(self.multitask_tasks) > 0:
-            from fairseq.models.speech_to_speech.s2s_transformer import (
-                S2STransformerMultitaskModelBase,
-            )
-
-            assert isinstance(model, S2STransformerMultitaskModelBase)
+        # if len(self.multitask_tasks) > 0:
+        #     from fairseq.models.speech_to_speech.s2s_transformer import (
+        #         S2STransformerMultitaskModelBase,
+        #     )
+        #     assert isinstance(model, S2STransformerMultitaskModelBase)
 
         if self.args.eval_inference:
             self.eval_gen_args = json.loads(self.args.eval_args)

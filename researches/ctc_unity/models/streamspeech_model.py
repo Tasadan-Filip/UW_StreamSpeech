@@ -5,6 +5,7 @@
 
 import copy
 import logging
+from pathlib import Path
 import torch
 from typing import OrderedDict
 
@@ -21,19 +22,16 @@ from ctc_unity.modules.ctc_decoder_with_transformer_layer import (
     CTCDecoderWithTransformerLayer,
 )
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
-from fairseq.models.speech_to_speech.modules.transformer_decoder_aug import (
-    AugTransformerUnitDecoder,
-)
 from ctc_unity.modules.transformer_encoder import (
     UniTransformerEncoderNoEmb,
 )
-from chunk_unity.models.s2s_conformer import ChunkS2UTConformerModel
+from chunk_unity.models.s2s_conformer import ChunkS2SConformerEncoder
 from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
     s2ut_architecture_base,
 )
 from chunk_unity.models.s2s_transformer import (
-    TransformerUnitDecoder,
+    S2UTTransformerModel
 )
 from fairseq.models.transformer import TransformerModelBase
 from ctc_unity.modules.transformer_decoder import TransformerDecoder
@@ -55,14 +53,13 @@ def multitask_text_transformer_decoder_arch(
 
 
 @register_model("streamspeech")
-class StreamSpeechModel(ChunkS2UTConformerModel):
+class StreamSpeechModel(S2UTTransformerModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
     """
 
     @staticmethod
     def add_args(parser):
-        ChunkS2UTConformerModel.add_args(parser)
         parser.add_argument(
             "--translation-decoder-layers",
             type=int,
@@ -105,6 +102,34 @@ class StreamSpeechModel(ChunkS2UTConformerModel):
             type=int,
             default=10,
             metavar="N",
+        )
+
+        S2UTTransformerModel.add_args(parser)
+        
+        parser.add_argument(
+            "--depthwise-conv-kernel-size",
+            type=int,
+            metavar="N",
+            help="kernel size of depthwise convolution layers",
+        )
+        parser.add_argument(
+            "--attn-type",
+            type=str,
+            metavar="STR",
+            help="If not specified uses fairseq MHA. Other valid option is espnet for using conformer",
+        )
+        parser.add_argument(
+            "--pos-enc-type",
+            type=str,
+            metavar="STR",
+            help="Must be specified in addition to attn-type=espnet for rel_pos and rope",
+        )
+        parser.add_argument(
+            "--chunk-size",
+            type=int,
+            metavar="N",
+            default=-1,
+            help="chunk size",
         )
 
     @classmethod
@@ -178,10 +203,26 @@ class StreamSpeechModel(ChunkS2UTConformerModel):
             tgt_dict,
             embed_tokens,
         )
+    
+    @classmethod
+    def _build_encoder(cls, args):
+        encoder = ChunkS2SConformerEncoder(args)
+        pretraining_path = getattr(args, "load_pretrained_encoder_from", None)
+        if pretraining_path is not None:
+            if not Path(pretraining_path).exists():
+                logger.warning(
+                    f"skipped pretraining because {pretraining_path} does not exist"
+                )
+            else:
+                encoder = checkpoint_utils.load_pretrained_component_from_model(
+                    component=encoder, checkpoint=pretraining_path
+                )
+                logger.info(f"loaded pretrained encoder from: {pretraining_path}")
+        return encoder
 
     @classmethod
     def build_model(cls, args, task):
-        encoder = cls.build_encoder(args)
+        encoder = cls._build_encoder(args)
         decoder = cls.build_decoder(
             args,
             task.target_dictionary,
