@@ -4,8 +4,6 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
-from typing import Optional
-
 import torch
 import torch.nn.functional as F
 

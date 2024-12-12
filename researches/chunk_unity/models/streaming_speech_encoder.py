@@ -13,14 +13,13 @@ from fairseq.data.data_utils import lengths_to_padding_mask
 from fairseq.models import FairseqEncoder
 
 from chunk_unity.modules.convolution import (
-    Conv1dSubsampler,
-    Conv2dSubsampler,
+    Conv1dSubsampler
 )
 from fairseq.models.speech_to_text.s2t_transformer import (
     S2TTransformerEncoder
 )
-from fairseq.modules import PositionalEmbedding, RelPositionalEncoding
-from chunk_unity.modules.conformer_layer import ChunkConformerEncoderLayer
+from fairseq.modules import RelPositionalEncoding
+from ctc_unity.modules.encoder_conformer_layer import ChunkConformerEncoderLayer
 from fairseq.models.transformer import Linear
 
 logger = logging.getLogger(__name__)

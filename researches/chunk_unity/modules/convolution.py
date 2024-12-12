@@ -8,7 +8,7 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from chunk_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
+from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
 
 
 class Conv1dSubsampler(nn.Module):

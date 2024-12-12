@@ -17,7 +17,7 @@ from uni_unity.modules.espnet_multihead_attention import (
 )
 
 from fairseq.utils import get_activation_fn
-from chunk_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
+from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
 
 
 class ConvolutionModule(torch.nn.Module):
