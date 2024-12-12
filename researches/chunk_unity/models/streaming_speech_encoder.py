@@ -5,7 +5,6 @@
 
 import logging
 import math
-from pathlib import Path
 
 import torch
 from fairseq import utils
