@@ -38,7 +38,6 @@ class StreamingSpeechEncoder(FairseqEncoder):
         if args.no_scale_embedding:
             self.embed_scale = 1.0
         self.padding_idx = 1
-        self.conv_version = args.conv_version
 
         self.chunk_size = getattr(args, "chunk_size", None)
         if self.chunk_size is None:
@@ -46,32 +45,17 @@ class StreamingSpeechEncoder(FairseqEncoder):
         else:
             self.chunk = True
 
-        if self.conv_version == "s2t_transformer":
-            self.subsample = Conv1dSubsampler(
+        self.subsample = Conv1dSubsampler(
                 args.input_feat_per_channel * args.input_channels,
                 args.conv_channels,
                 args.encoder_embed_dim,
                 [int(k) for k in args.conv_kernel_sizes.split(",")],
                 chunk_size=self.chunk_size if self.chunk else None,
             )
-        elif self.conv_version == "convtransformer":
-            self.subsample = Conv2dSubsampler(
-                args.input_channels,
-                args.input_feat_per_channel,
-                args.conv_out_channels,
-                args.encoder_embed_dim,
-            )
+        
         self.pos_enc_type = args.pos_enc_type
-        if self.pos_enc_type == "rel_pos":
-            self.embed_positions = RelPositionalEncoding(
+        self.embed_positions = RelPositionalEncoding(
                 args.max_source_positions, args.encoder_embed_dim
-            )
-        elif self.pos_enc_type == "rope":
-            self.embed_positions = None
-        else:  # Use absolute positional embedding
-            self.pos_enc_type = "abs"
-            self.embed_positions = PositionalEmbedding(
-                args.max_source_positions, args.encoder_embed_dim, self.padding_idx
             )
 
         self.linear = torch.nn.Linear(args.encoder_embed_dim, args.encoder_embed_dim)
@@ -122,16 +106,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
         x, input_lengths = self.subsample(src_tokens, src_lengths)  # returns T X B X C
         encoder_padding_mask = lengths_to_padding_mask(input_lengths)
         x = self.embed_scale * x
-        if self.pos_enc_type == "rel_pos":
-            positions = self.embed_positions(x)
-
-        elif self.pos_enc_type == "rope":
-            positions = None
-
-        else:
-            positions = self.embed_positions(encoder_padding_mask).transpose(0, 1)
-            x += positions
-            positions = None
+        positions = self.embed_positions(x)
 
         x = self.linear(x)
         x = self.dropout(x)
