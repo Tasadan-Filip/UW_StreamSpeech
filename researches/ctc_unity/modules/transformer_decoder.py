@@ -12,7 +12,6 @@ from torch import Tensor
 from fairseq import utils
 from fairseq.distributed import fsdp_wrap
 from fairseq.models import FairseqIncrementalDecoder
-from fairseq.models.transformer import TransformerConfig
 from fairseq.modules import (
     AdaptiveSoftmax,
     BaseLayer,
@@ -20,23 +19,13 @@ from fairseq.modules import (
     LayerDropModuleList,
     LayerNorm,
     PositionalEmbedding,
-    SinusoidalPositionalEmbedding,
     # transformer_layer,
 )
 from ctc_unity.modules import transformer_layer
 from fairseq.modules.checkpoint_activations import checkpoint_wrapper
 from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 
-
-# rewrite name for backward compatibility in `make_generation_fast_`
-def module_name_fordropout(module_name: str) -> str:
-    if module_name == "TransformerDecoderBase":
-        return "TransformerDecoder"
-    else:
-        return module_name
-
-
-class TransformerDecoderBase(FairseqIncrementalDecoder):
+class TransformerDecoder(FairseqIncrementalDecoder):
     """
     Transformer decoder consisting of *cfg.decoder.layers* layers. Each layer
     is a :class:`TransformerDecoderLayer`.
@@ -63,7 +52,7 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
         self._future_mask = torch.empty(0)
 
         self.dropout_module = FairseqDropout(
-            cfg.dropout, module_name=module_name_fordropout(self.__class__.__name__)
+            cfg.dropout, module_name= self.__class__.__name__
         )
         self.decoder_layerdrop = cfg.decoder.layerdrop
         self.share_input_output_embed = cfg.share_decoder_input_output_embed
@@ -192,8 +181,6 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
         full_context_alignment: bool = False,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
-        src_lengths: Optional[Any] = None,
-        return_all_hiddens: bool = False,
         streaming_config=None,
     ):
         """
@@ -360,6 +347,7 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
 
         else:
             streaming_mask = None
+            
         # decoder layers
         attn: Optional[Tensor] = None
         inner_states: List[Optional[Tensor]] = [x]
@@ -492,32 +480,3 @@ def Linear(in_features, out_features, bias=True):
     if bias:
         nn.init.constant_(m.bias, 0.0)
     return m
-
-
-class TransformerDecoder(TransformerDecoderBase):
-    def __init__(
-        self,
-        args,
-        dictionary,
-        embed_tokens,
-        no_encoder_attn=False,
-        output_projection=None,
-    ):
-        self.args = args
-        super().__init__(
-            TransformerConfig.from_namespace(args),
-            dictionary,
-            embed_tokens,
-            no_encoder_attn=no_encoder_attn,
-            output_projection=output_projection,
-        )
-
-    def build_output_projection(self, args, dictionary, embed_tokens):
-        super().build_output_projection(
-            TransformerConfig.from_namespace(args), dictionary, embed_tokens
-        )
-
-    def build_decoder_layer(self, args, no_encoder_attn=False):
-        return super().build_decoder_layer(
-            TransformerConfig.from_namespace(args), no_encoder_attn=no_encoder_attn
-        )

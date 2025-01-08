@@ -17,9 +17,6 @@ from fairseq.models import (
     register_model_architecture,
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
-from ctc_unity.modules.ctc_decoder_with_transformer_layer import (
-    CTCDecoderWithTransformerLayer
-)
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
 from ctc_unity.modules.transformer_encoder import (
     UniTransformerEncoderNoEmb
@@ -28,14 +25,14 @@ from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
     s2ut_architecture_base,
 )
-from ctc_unity.models.s2s_transformer import (
-    S2STransformerModelBase
-)
 from fairseq.models.transformer import TransformerModelBase
 from ctc_unity.modules.transformer_decoder import TransformerDecoder
-from ctc_unity.modules.ctc_transformer_unit_decoder import CTCTransformerUnitDecoder
+from ctc_unity.modules.unit_ctc_decoder import UnitCTCDecoder
 
-from fairseq import checkpoint_utils
+from fairseq import checkpoint_utils, utils
+from fairseq.models.transformer import TransformerConfig
+
+from fairseq.models import FairseqEncoderDecoderModel
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +46,7 @@ def multitask_text_transformer_decoder_arch(
 
 
 @register_model("streamspeech")
-class StreamSpeechModel(S2STransformerModelBase):
+class StreamSpeechModel(FairseqEncoderDecoderModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
     """
@@ -100,7 +97,141 @@ class StreamSpeechModel(S2STransformerModelBase):
             metavar="N",
         )
 
-        S2STransformerModelBase.add_args(parser)
+        parser.add_argument(
+            "--conv-kernel-sizes",
+            type=str,
+            metavar="STR",
+            help="kernel sizes of Conv1d (s2t_transformer) subsampling layers",
+        )
+        parser.add_argument(
+            "--conv-channels",
+            type=int,
+            metavar="N",
+            help="# of channels in Conv1d (s2t_transformer) subsampling layers",
+        )
+        parser.add_argument(
+            "--conv-out-channels",
+            type=int,
+            metavar="N",
+            help="# of channels in Conv2d (convtransformer) subsampling layers",
+        )
+        parser.add_argument(
+            "--conv-version",
+            type=str,
+            default="s2t_transformer",
+            choices=["s2t_transformer", "convtransformer"],
+            help="version of frontend convolutional layers",
+        )
+        # Transformer
+        parser.add_argument(
+            "--activation-fn",
+            type=str,
+            default="relu",
+            choices=utils.get_available_activation_fns(),
+            help="activation function to use",
+        )
+        parser.add_argument(
+            "--dropout", type=float, metavar="D", help="dropout probability"
+        )
+        parser.add_argument(
+            "--attention-dropout",
+            type=float,
+            metavar="D",
+            help="dropout probability for attention weights",
+        )
+        parser.add_argument(
+            "--activation-dropout",
+            "--relu-dropout",
+            type=float,
+            metavar="D",
+            help="dropout probability after activation in FFN.",
+        )
+        parser.add_argument(
+            "--encoder-embed-dim",
+            type=int,
+            metavar="N",
+            help="encoder embedding dimension",
+        )
+        parser.add_argument(
+            "--encoder-ffn-embed-dim",
+            type=int,
+            metavar="N",
+            help="encoder embedding dimension for FFN",
+        )
+        parser.add_argument(
+            "--encoder-layers", type=int, metavar="N", help="num encoder layers"
+        )
+        parser.add_argument(
+            "--encoder-attention-heads",
+            type=int,
+            metavar="N",
+            help="num encoder attention heads",
+        )
+        parser.add_argument(
+            "--encoder-normalize-before",
+            action="store_true",
+            help="apply layernorm before each encoder block",
+        )
+        parser.add_argument(
+            "--decoder-embed-dim",
+            type=int,
+            metavar="N",
+            help="decoder embedding dimension",
+        )
+        parser.add_argument(
+            "--decoder-ffn-embed-dim",
+            type=int,
+            metavar="N",
+            help="decoder embedding dimension for FFN",
+        )
+        parser.add_argument(
+            "--decoder-layers", type=int, metavar="N", help="num decoder layers"
+        )
+        parser.add_argument(
+            "--decoder-attention-heads",
+            type=int,
+            metavar="N",
+            help="num decoder attention heads",
+        )
+        parser.add_argument(
+            "--decoder-normalize-before",
+            action="store_true",
+            help="apply layernorm before each decoder block",
+        )
+        parser.add_argument(
+            "--share-decoder-input-output-embed",
+            action="store_true",
+            help="share decoder input and output embeddings",
+        )
+        parser.add_argument(
+            "--layernorm-embedding",
+            action="store_true",
+            help="add layernorm to embedding",
+        )
+        parser.add_argument(
+            "--no-scale-embedding",
+            action="store_true",
+            help="if True, dont scale embeddings",
+        )
+        parser.add_argument(
+            "--load-pretrained-encoder-from",
+            type=str,
+            metavar="STR",
+            help="model to take encoder weights from (for initialization)",
+        )
+        parser.add_argument(
+            "--encoder-freezing-updates",
+            type=int,
+            metavar="N",
+            help="freeze encoder for first N updates",
+        )
+        # speaker
+        parser.add_argument(
+            "--speaker-embed-dim",
+            type=int,
+            metavar="N",
+            help="speaker embedding dimension",
+        )
         
         parser.add_argument(
             "--depthwise-conv-kernel-size",
@@ -129,102 +260,13 @@ class StreamSpeechModel(S2STransformerModelBase):
         )
 
     @classmethod
-    def build_multitask_decoder(
-        cls,
-        args,
-        tgt_dict,
-        in_dim,
-        is_first_pass_decoder,
-        decoder_layers,
-        decoder_embed_dim,
-        decoder_attention_heads,
-    ):
-        decoder_args = args.decoder_args
-        decoder_args.encoder_embed_dim = in_dim
-        if args.decoder_type == "transformer":
-            if is_first_pass_decoder:
-                multitask_text_transformer_decoder_arch(
-                    decoder_args,
-                    decoder_layers,
-                    decoder_embed_dim,
-                    decoder_attention_heads,
-                )  # 4L
-            else:
-                base_multitask_text_transformer_decoder_arch(decoder_args)  # 2L
-            task_decoder = TransformerDecoder(
-                decoder_args,
-                tgt_dict,
-                embed_tokens=TransformerModelBase.build_embedding(
-                    decoder_args,
-                    tgt_dict,
-                    decoder_args.decoder_embed_dim,
-                ),
-            )
-        elif args.decoder_type == "ctc":
-            if getattr(decoder_args, "encoder_layers", 0) == 0:
-                task_decoder = CTCDecoder(
-                    dictionary=tgt_dict,
-                    in_dim=in_dim,
-                )
-            else:
-                task_decoder = CTCDecoderWithTransformerLayer(
-                    decoder_args,
-                    dictionary=tgt_dict,
-                    in_dim=in_dim,
-                )
-        else:
-            raise NotImplementedError(
-                "currently only support multitask decoder_type 'transformer', 'ctc'"
-            )
-
-        return task_decoder
-
-    @classmethod
-    def build_decoder(cls, args, tgt_dict, aug_attn=False):
-        num_embeddings = len(tgt_dict)
-        padding_idx = tgt_dict.pad()
-        embed_tokens = StackedEmbedding(
-            num_embeddings,
-            args.decoder_embed_dim,
-            padding_idx,
-            num_stacked=args.n_frames_per_step,
-        )
-
-        _args = copy.deepcopy(args)
-        _args.encoder_embed_dim = args.decoder_embed_dim
-
-        decoder_cls = CTCTransformerUnitDecoder  # AugTransformerUnitDecoder if aug_attn else TransformerUnitDecoder
-        return decoder_cls(
-            _args,
-            tgt_dict,
-            embed_tokens,
-        )
-    
-    @classmethod
-    def _build_encoder(cls, args):
-        encoder = StreamingSpeechEncoder(args)
-        pretraining_path = getattr(args, "load_pretrained_encoder_from", None)
-        if pretraining_path is not None:
-            if not Path(pretraining_path).exists():
-                logger.warning(
-                    f"skipped pretraining because {pretraining_path} does not exist"
-                )
-            else:
-                encoder = checkpoint_utils.load_pretrained_component_from_model(
-                    component=encoder, checkpoint=pretraining_path
-                )
-                logger.info(f"loaded pretrained encoder from: {pretraining_path}")
-        return encoder
-
-    @classmethod
     def build_model(cls, args, task):
-        encoder = cls._build_encoder(args)
-        decoder = cls.build_decoder(
+        streaming_speech_encoder = cls._build_streaming_speech_encoder(args)
+        decoder = cls._build_unit_ctc_decoder(
             args,
-            task.target_dictionary,
-            aug_attn=getattr(args, "synthesizer_augmented_cross_attention", False),
+            task.target_dictionary
         )
-        base_model = cls(encoder, decoder)
+        base_model = cls(streaming_speech_encoder, decoder)
 
         base_model.t2u_augmented_cross_attn = getattr(
             args, "synthesizer_augmented_cross_attention", False
@@ -248,7 +290,6 @@ class StreamSpeechModel(S2STransformerModelBase):
                 task_obj.args,
                 task_obj.target_dictionary,
                 in_dim,
-                task_obj.is_first_pass_decoder,
                 getattr(args, "translation_decoder_layers", 4),
                 getattr(args, "decoder_embed_dim", 256),
                 getattr(args, "decoder_attention_heads", 4),
@@ -293,6 +334,83 @@ class StreamSpeechModel(S2STransformerModelBase):
             )
 
         return base_model
+
+    @classmethod
+    def build_multitask_decoder(
+        cls,
+        args,
+        tgt_dict,
+        in_dim,
+        decoder_layers,
+        decoder_embed_dim,
+        decoder_attention_heads,
+    ):
+        decoder_args = args.decoder_args
+        decoder_args.encoder_embed_dim = in_dim
+        if args.decoder_type == "transformer":
+            multitask_text_transformer_decoder_arch(
+                    decoder_args,
+                    decoder_layers,
+                    decoder_embed_dim,
+                    decoder_attention_heads,
+                )  # 4L
+                
+            task_decoder = TransformerDecoder(
+                TransformerConfig.from_namespace(decoder_args),
+                tgt_dict,
+                embed_tokens=TransformerModelBase.build_embedding(
+                    decoder_args,
+                    tgt_dict,
+                    decoder_args.decoder_embed_dim,
+                )
+            )
+        elif args.decoder_type == "ctc":
+            task_decoder = CTCDecoder(
+                    dictionary=tgt_dict,
+                    in_dim=in_dim
+                )
+        else:
+            raise NotImplementedError(
+                "currently only support multitask decoder_type 'transformer', 'ctc'"
+            )
+
+        return task_decoder
+
+    @classmethod
+    def _build_unit_ctc_decoder(cls, args, tgt_dict):
+        num_embeddings = len(tgt_dict)
+        padding_idx = tgt_dict.pad()
+        embed_tokens = StackedEmbedding(
+            num_embeddings,
+            args.decoder_embed_dim,
+            padding_idx,
+            num_stacked=args.n_frames_per_step,
+        )
+
+        _args = copy.deepcopy(args)
+        _args.encoder_embed_dim = args.decoder_embed_dim
+
+        return UnitCTCDecoder(
+            _args,
+            tgt_dict,
+            embed_tokens,
+        )
+    
+    @classmethod
+    def _build_streaming_speech_encoder(cls, args):
+        encoder = StreamingSpeechEncoder(args)
+        pretraining_path = getattr(args, "load_pretrained_encoder_from", None)
+        if pretraining_path is not None:
+            if not Path(pretraining_path).exists():
+                logger.warning(
+                    f"skipped pretraining because {pretraining_path} does not exist"
+                )
+            else:
+                encoder = checkpoint_utils.load_pretrained_component_from_model(
+                    component=encoder, checkpoint=pretraining_path
+                )
+                logger.info(f"loaded pretrained encoder from: {pretraining_path}")
+        return encoder
 
     @classmethod
     def build_text_encoder(cls, args):
