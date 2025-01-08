@@ -202,37 +202,15 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
         )
 
         self.self_attn_layer_norm = LayerNorm(embed_dim, export=False)
-        self.self_attn_dropout = torch.nn.Dropout(dropout)
-        if attn_type == "espnet":
-            if self.pos_enc_type == "rel_pos":
-                self.self_attn = RelPositionMultiHeadedAttention(
-                    embed_dim,
-                    attention_heads,
-                    dropout=dropout,
-                )
-            elif self.pos_enc_type == "rope":
-                self.self_attn = RotaryPositionMultiHeadedAttention(
-                    embed_dim,
-                    attention_heads,
-                    dropout=dropout,
-                    precision=use_fp16,
-                )
-            elif self.pos_enc_type == "abs":
-                self.self_attn = ESPNETMultiHeadedAttention(
-                    embed_dim,
-                    attention_heads,
-                    dropout=dropout,
-                )
-            else:
-                raise Exception(f"Unsupported attention type {self.pos_enc_type}")
-        else:
-            # Default to fairseq MHA
-            self.self_attn = MultiheadAttention(
-                embed_dim,
-                attention_heads,
-                dropout=dropout,
-            )
 
+        self.self_attn_dropout = torch.nn.Dropout(dropout)
+
+        self.self_attn = RelPositionMultiHeadedAttention(
+                    embed_dim,
+                    attention_heads,
+                    dropout=dropout
+                )  
+             
         self.conv_module = ConvolutionModule(
             embed_dim=embed_dim,
             channels=embed_dim,
@@ -271,8 +249,7 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
         x = x * 0.5 + residual
         residual = x
         x = self.self_attn_layer_norm(x)
-        if self.pos_enc_type == "rel_pos":
-            x, attn = self.self_attn(
+        x, attn = self.self_attn(
                 query=x,
                 key=x,
                 value=x,
@@ -281,15 +258,7 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
                 need_weights=False,
                 extra=extra,
             )
-        else:
-            x, attn = self.self_attn(
-                query=x,
-                key=x,
-                value=x,
-                key_padding_mask=encoder_padding_mask,
-                need_weights=False,
-                extra=extra,
-            )
+
         x = self.self_attn_dropout(x)
         x = x + residual
 

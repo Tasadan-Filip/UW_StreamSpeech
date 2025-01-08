@@ -43,6 +43,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
         else:
             self.chunk = True
 
+        # Reduce the size of the input directly through convolution operations
         self.subsample = Conv1dSubsampler(
                 args.input_feat_per_channel * args.input_channels,
                 args.conv_channels,
