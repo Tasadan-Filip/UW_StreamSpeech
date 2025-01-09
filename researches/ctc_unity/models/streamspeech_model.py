@@ -7,7 +7,7 @@ import copy
 import logging
 from pathlib import Path
 from ctc_unity.modules.simultaneous_text_decoder import SimultaneousTextDecoder
-from ctc_unity.models.streaming_speech_encoder import StreamingSpeechEncoder
+from ctc_unity.modules.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
 from typing import OrderedDict
 
@@ -19,8 +19,8 @@ from fairseq.models import (
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
-from ctc_unity.modules.transformer_encoder import (
-    UniTransformerEncoderNoEmb
+from ctc_unity.modules.text_to_unit_encoder import (
+    TextToUnitEncoder
 )
 from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
@@ -303,7 +303,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         # set up encoder on top of the auxiliary MT decoder
         if getattr(args, "synthesizer_encoder_layers", 0) > 0:
             #TODO: clean this method
-            base_model.synthesizer_encoder = cls.build_text_encoder(args)
+            base_model.synthesizer_encoder = cls._build_text_to_unit_encoder(args)
         else:
             base_model.synthesizer_encoder = None
 
@@ -535,14 +535,14 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         return encoder
 
     @classmethod
-    def build_text_encoder(cls, args):
+    def _build_text_to_unit_encoder(cls, args):
         _args = copy.deepcopy(args)
         _args.encoder_layers = args.synthesizer_encoder_layers
         _args.encoder_embed_dim = args.decoder_embed_dim
         _args.encoder_ffn_embed_dim = args.decoder_ffn_embed_dim
         _args.encoder_attention_heads = args.decoder_attention_heads
         _args.encoder_normalize_before = True
-        return UniTransformerEncoderNoEmb(_args)
+        return TextToUnitEncoder(_args)
     
     @classmethod
     def _build_simultaneous_text_decoder_arguments(cls, args, decoder_layers, decoder_embed_dim=256, decoder_attention_heads=4):

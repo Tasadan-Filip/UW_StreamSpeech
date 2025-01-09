@@ -4,11 +4,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import Any, Dict, List, Optional
 
+from ctc_unity.modules.transformer_decoder_base_layer import TransformerDecoderBaseLayer
 import torch
 import torch.nn as nn
-from torch import Tensor
 from fairseq import utils
 from fairseq.distributed import fsdp_wrap
 from fairseq.models import FairseqIncrementalDecoder
@@ -18,15 +17,15 @@ from fairseq.modules import (
     FairseqDropout,
     LayerDropModuleList,
     LayerNorm,
-    PositionalEmbedding,
-    # transformer_layer,
+    PositionalEmbedding
 )
-from ctc_unity.modules import transformer_layer
 from fairseq.modules.checkpoint_activations import checkpoint_wrapper
 from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 
 class TransformerDecoderBase(FairseqIncrementalDecoder):
     """
+    TODO: make this documentation more suggestive
+    
     Transformer decoder consisting of *cfg.decoder.layers* layers. Each layer
     is a :class:`TransformerDecoderLayer`.
 
@@ -79,7 +78,7 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
             self.quant_noise = None
 
         self.project_in_dim = (
-            Linear(input_embed_dim, embed_dim, bias=False)
+            self._create_linear_layer(input_embed_dim, embed_dim, bias=False)
             if embed_dim != input_embed_dim
             else None
         )
@@ -106,7 +105,7 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
             self.layers = nn.ModuleList([])
         self.layers.extend(
             [
-                self.build_decoder_layer(cfg, no_encoder_attn)
+                self._build_decoder_layer(cfg, no_encoder_attn)
                 for _ in range(cfg.decoder.layers)
             ]
         )
@@ -118,7 +117,7 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
             self.layer_norm = None
 
         self.project_out_dim = (
-            Linear(embed_dim, self.output_embed_dim, bias=False)
+            self._create_linear_layer(embed_dim, self.output_embed_dim, bias=False)
             if embed_dim != self.output_embed_dim and not cfg.tie_adaptive_weights
             else None
         )
@@ -126,9 +125,16 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
         self.adaptive_softmax = None
         self.output_projection = output_projection
         if self.output_projection is None:
-            self.build_output_projection(cfg, dictionary, embed_tokens)
+            self._build_output_projection(cfg, dictionary, embed_tokens)
+    
+    def _create_linear_layer(self, in_features, out_features, bias=True):
+        m = nn.Linear(in_features, out_features, bias)
+        nn.init.xavier_uniform_(m.weight)
+        if bias:
+            nn.init.constant_(m.bias, 0.0)
+        return m
 
-    def build_output_projection(self, cfg, dictionary, embed_tokens):
+    def _build_output_projection(self, cfg, dictionary, embed_tokens):
         if cfg.adaptive_softmax_cutoff is not None:
             self.adaptive_softmax = AdaptiveSoftmax(
                 len(dictionary),
@@ -160,8 +166,8 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
                 BaseLayer(cfg),
             )
 
-    def build_decoder_layer(self, cfg, no_encoder_attn=False):
-        layer = transformer_layer.TransformerDecoderLayerBase(cfg, no_encoder_attn)
+    def _build_decoder_layer(self, cfg, no_encoder_attn=False):
+        layer = TransformerDecoderBaseLayer(cfg, no_encoder_attn)
         checkpoint = cfg.checkpoint_activations
         if checkpoint:
             offload_to_cpu = cfg.offload_activations
@@ -171,10 +177,3 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
         min_params_to_wrap = cfg.min_params_to_wrap if not checkpoint else 0
         layer = fsdp_wrap(layer, min_num_params=min_params_to_wrap)
         return layer
-
-def Linear(in_features, out_features, bias=True):
-    m = nn.Linear(in_features, out_features, bias)
-    nn.init.xavier_uniform_(m.weight)
-    if bias:
-        nn.init.constant_(m.bias, 0.0)
-    return m

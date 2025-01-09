@@ -11,8 +11,8 @@ from fairseq import utils
 from fairseq.data.data_utils import lengths_to_padding_mask
 from fairseq.models import FairseqEncoder
 
-from ctc_unity.modules.convolution import (
-    Conv1dSubsampler
+from ctc_unity.modules.streaming_speech_encoder_convolution_subsampler import (
+    StreamingSpeechEncoderConvolutionSubsampler
 )
 from fairseq.models.speech_to_text.s2t_transformer import (
     S2TTransformerEncoder
@@ -44,7 +44,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
             self.chunk = True
 
         # Reduce the size of the input directly through convolution operations
-        self.subsample = Conv1dSubsampler(
+        self.subsample = StreamingSpeechEncoderConvolutionSubsampler(
                 args.input_feat_per_channel * args.input_channels,
                 args.conv_channels,
                 args.encoder_embed_dim,

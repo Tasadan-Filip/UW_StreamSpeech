@@ -66,7 +66,7 @@ class ChunkCausalConv1d(torch.nn.Conv1d):
         return res
 
     def pad_to_chunk_size(self, input_tensor):
-        batch_size, num_channels, seq_length = input_tensor.size()
+        _, _, seq_length = input_tensor.size()
 
         input_tensor = F.pad(input_tensor, (self.__padding, 0))
         padding_size = (

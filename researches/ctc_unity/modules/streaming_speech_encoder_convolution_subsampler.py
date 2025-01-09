@@ -11,7 +11,7 @@ import torch.nn as nn
 from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
 
 
-class Conv1dSubsampler(nn.Module):
+class StreamingSpeechEncoderConvolutionSubsampler(nn.Module):
     """Convolutional subsampler: a stack of 1D convolution (along temporal
     dimension) followed by non-linear activation via gated linear units
     (https://arxiv.org/abs/1911.08460)
@@ -31,7 +31,7 @@ class Conv1dSubsampler(nn.Module):
         kernel_sizes: List[int] = (3, 3),
         chunk_size=None,
     ):
-        super(Conv1dSubsampler, self).__init__()
+        super(StreamingSpeechEncoderConvolutionSubsampler, self).__init__()
         self.n_layers = len(kernel_sizes)
 
         if chunk_size is None:
