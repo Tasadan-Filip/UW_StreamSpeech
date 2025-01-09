@@ -41,7 +41,7 @@ class TransformerDecoderBaseLayer(nn.Module):
 
         self.cross_self_attention = cfg.cross_self_attention
 
-        self.self_attn = self.build_self_attention(
+        self.self_attn = self._build_self_attention(
             self.embed_dim,
             cfg,
             add_bias_kv=add_bias_kv,
@@ -73,13 +73,9 @@ class TransformerDecoderBaseLayer(nn.Module):
 
         self.self_attn_layer_norm = LayerNorm(self.embed_dim, export=cfg.export)
 
-        if no_encoder_attn:
-            self.encoder_attn = None
-            self.encoder_attn_layer_norm = None
-        else:
-            self.encoder_attn = self.build_encoder_attention(self.embed_dim, cfg)
-            self.encoder_attn_layer_norm = LayerNorm(self.embed_dim, export=cfg.export)
-
+        self.encoder_attn = self._build_encoder_attention(self.embed_dim, cfg)
+        self.encoder_attn_layer_norm = LayerNorm(self.embed_dim, export=cfg.export)
+            
         self.ffn_layernorm = (
             LayerNorm(cfg.decoder.ffn_embed_dim)
             if utils.safe_getattr(cfg, "scale_fc", False)
@@ -96,13 +92,13 @@ class TransformerDecoderBaseLayer(nn.Module):
             else None
         )
 
-        self.fc1 = self.build_fc1(
+        self.fc1 = self._build_fc1(
             self.embed_dim,
             cfg.decoder.ffn_embed_dim,
             self.quant_noise,
             self.quant_noise_block_size,
         )
-        self.fc2 = self.build_fc2(
+        self.fc2 = self._build_fc2(
             cfg.decoder.ffn_embed_dim,
             self.embed_dim,
             self.quant_noise,
@@ -113,46 +109,6 @@ class TransformerDecoderBaseLayer(nn.Module):
         self.need_attn = True
 
         self.onnx_trace = False
-
-    def build_fc1(self, input_dim, output_dim, q_noise, qn_block_size):
-        return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
-
-    def build_fc2(self, input_dim, output_dim, q_noise, qn_block_size):
-        return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
-
-    def build_self_attention(
-        self, embed_dim, cfg, add_bias_kv=False, add_zero_attn=False
-    ):
-        return MultiheadAttention(
-            embed_dim,
-            cfg.decoder.attention_heads,
-            dropout=cfg.attention_dropout,
-            add_bias_kv=add_bias_kv,
-            add_zero_attn=add_zero_attn,
-            self_attention=not cfg.cross_self_attention,
-            q_noise=self.quant_noise,
-            qn_block_size=self.quant_noise_block_size,
-            xformers_att_config=cfg.decoder.xformers_att_config,
-        )
-
-    def build_encoder_attention(self, embed_dim, cfg):
-        return MultiheadAttention(
-            embed_dim,
-            cfg.decoder.attention_heads,
-            kdim=cfg.encoder.embed_dim,
-            vdim=cfg.encoder.embed_dim,
-            dropout=cfg.attention_dropout,
-            encoder_decoder_attention=True,
-            q_noise=self.quant_noise,
-            qn_block_size=self.quant_noise_block_size,
-            xformers_att_config=cfg.encoder.xformers_att_config,
-        )
-
-    def prepare_for_onnx_export_(self):
-        self.onnx_trace = True
-
-    def residual_connection(self, x, residual):
-        return residual + x
 
     def forward(
         self,
@@ -239,7 +195,7 @@ class TransformerDecoderBaseLayer(nn.Module):
         if self.attn_ln is not None:
             x = self.attn_ln(x)
         x = self.dropout_module(x)
-        x = self.residual_connection(x, residual)
+        x = self._residual_connection(x, residual)
         if not self.normalize_before:
             x = self.self_attn_layer_norm(x)
 
@@ -286,7 +242,7 @@ class TransformerDecoderBaseLayer(nn.Module):
             )
 
             x = self.dropout_module(x)
-            x = self.residual_connection(x, residual)
+            x = self._residual_connection(x, residual)
             if not self.normalize_before:
                 x = self.encoder_attn_layer_norm(x)
 
@@ -302,7 +258,7 @@ class TransformerDecoderBaseLayer(nn.Module):
         x = self.dropout_module(x)
         if self.w_resid is not None:
             residual = torch.mul(self.w_resid, residual)
-        x = self.residual_connection(x, residual)
+        x = self._residual_connection(x, residual)
         if not self.normalize_before:
             x = self.final_layer_norm(x)
         if self.onnx_trace and incremental_state is not None:
@@ -319,5 +275,39 @@ class TransformerDecoderBaseLayer(nn.Module):
             return x, attn, self_attn_state
         return x, attn, None
 
-    def make_generation_fast_(self, need_attn: bool = False, **kwargs):
-        self.need_attn = need_attn
+    def _build_fc1(self, input_dim, output_dim, q_noise, qn_block_size):
+        return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
+
+    def _build_fc2(self, input_dim, output_dim, q_noise, qn_block_size):
+        return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
+
+    def _build_self_attention(
+        self, embed_dim, cfg, add_bias_kv=False, add_zero_attn=False
+    ):
+        return MultiheadAttention(
+            embed_dim,
+            cfg.decoder.attention_heads,
+            dropout=cfg.attention_dropout,
+            add_bias_kv=add_bias_kv,
+            add_zero_attn=add_zero_attn,
+            self_attention=not cfg.cross_self_attention,
+            q_noise=self.quant_noise,
+            qn_block_size=self.quant_noise_block_size,
+            xformers_att_config=cfg.decoder.xformers_att_config,
+        )
+
+    def _build_encoder_attention(self, embed_dim, cfg):
+        return MultiheadAttention(
+            embed_dim,
+            cfg.decoder.attention_heads,
+            kdim=cfg.encoder.embed_dim,
+            vdim=cfg.encoder.embed_dim,
+            dropout=cfg.attention_dropout,
+            encoder_decoder_attention=True,
+            q_noise=self.quant_noise,
+            qn_block_size=self.quant_noise_block_size,
+            xformers_att_config=cfg.encoder.xformers_att_config,
+        )
+
+    def _residual_connection(self, x, residual):
+        return residual + x

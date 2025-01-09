@@ -18,7 +18,7 @@ from fairseq.models.speech_to_text.s2t_transformer import (
     S2TTransformerEncoder
 )
 from fairseq.modules import RelPositionalEncoding
-from ctc_unity.modules.encoder_conformer_layer import ChunkConformerEncoderLayer
+from ctc_unity.modules.encoder_conformer_layer import StreamingSpeechEncoderLayer
 from fairseq.models.transformer import Linear
 
 logger = logging.getLogger(__name__)
@@ -60,9 +60,9 @@ class StreamingSpeechEncoder(FairseqEncoder):
         self.linear = torch.nn.Linear(args.encoder_embed_dim, args.encoder_embed_dim)
         self.dropout = torch.nn.Dropout(args.dropout)
 
-        self.conformer_layers = torch.nn.ModuleList(
+        self.streaming_speech_encoder_layers = torch.nn.ModuleList(
             [
-                ChunkConformerEncoderLayer(
+                StreamingSpeechEncoderLayer(
                     embed_dim=args.encoder_embed_dim,
                     ffn_embed_dim=args.encoder_ffn_embed_dim,
                     attention_heads=args.encoder_attention_heads,
@@ -117,7 +117,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
         extra = {"encoder_mask": self.buffered_chunk_mask(x) if self.chunk else None}
 
         # x is T X B X C
-        for layer in self.conformer_layers:
+        for layer in self.streaming_speech_encoder_layers:
             x, _ = layer(x, encoder_padding_mask, positions, extra=extra)
             if return_all_hiddens:
                 encoder_states.append(x)

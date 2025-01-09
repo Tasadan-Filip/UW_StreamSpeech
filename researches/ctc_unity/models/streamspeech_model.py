@@ -42,6 +42,213 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
     """
 
+    @classmethod
+    def build_model(cls, args, task):
+        streaming_speech_encoder = cls._build_streaming_speech_encoder(args)
+        unit_ctc_decoder = cls._build_unit_ctc_decoder(
+            args,
+            task.target_dictionary
+        )
+        base_model = cls(streaming_speech_encoder, unit_ctc_decoder)
+
+        base_model.t2u_augmented_cross_attn = getattr(
+            args, "synthesizer_augmented_cross_attention", False
+        )
+
+        # set up multitask decoders
+        base_model.mt_task_name = None
+        base_model.multitask_decoders = {}
+        has_first_pass_decoder = False
+        for task_name, task_obj in task.multitask_tasks.items():
+            if task_obj.is_first_pass_decoder:
+                has_first_pass_decoder = True
+                base_model.mt_task_name = task_name
+
+            in_dim = (
+                args.encoder_embed_dim
+                if task_obj.args.input_from == "encoder"
+                else args.decoder_embed_dim
+            )
+
+            task_decoder = cls._build_multitask_decoder(
+                task_obj.args,
+                task_obj.target_dictionary,
+                in_dim,
+                getattr(args, "translation_decoder_layers", 4),
+                getattr(args, "decoder_embed_dim", 256),
+                getattr(args, "decoder_attention_heads", 4),
+            )
+
+            setattr(base_model, f"{task_name}_decoder", task_decoder)
+
+            if task_obj.args.decoder_type == "ctc":
+                decoder_model_cls = FairseqEncoderModel
+            else:
+                decoder_model_cls = FairseqLanguageModel
+            
+            base_model.multitask_decoders[task_name] = decoder_model_cls(
+                getattr(base_model, f"{task_name}_decoder")
+            )
+
+        assert has_first_pass_decoder, "set at least one intermediate non-CTC decoder"
+
+        # set up encoder on top of the auxiliary MT decoder
+        if getattr(args, "synthesizer_encoder_layers", 0) > 0:
+            #TODO: clean this method
+            base_model.synthesizer_encoder = cls._build_text_to_unit_encoder(args)
+        else:
+            base_model.synthesizer_encoder = None
+
+        if getattr(args, "load_pretrained_mt_from", None):
+            state_dict = checkpoint_utils.load_checkpoint_to_cpu(
+                args.load_pretrained_mt_from
+            )["model"]
+            encoder_state_dict = OrderedDict()
+            decoder_state_dict = OrderedDict()
+            for key in state_dict.keys():
+                if key.startswith("encoder"):
+                    subkey = key[len("encoder") + 1 :]
+                    encoder_state_dict[subkey] = state_dict[key]
+                elif key.startswith("decoder"):
+                    decoder_state_dict[key] = state_dict[key]
+            base_model.encoder.load_state_dict(encoder_state_dict)
+            base_model.multitask_decoders[base_model.mt_task_name].load_state_dict(
+                decoder_state_dict
+            )
+            logger.info(
+                f"Successfully load pretrained Conformer from {args.load_pretrained_mt_from}."
+            )
+
+        return base_model
+    
+    def forward(
+        self,
+        src_tokens,
+        src_lengths,
+        prev_output_tokens,
+        prev_output_tokens_mt,
+        streaming_config=None,
+        tgt_speaker=None,
+        return_all_hiddens=False,
+    ):
+        mt_decoder = getattr(self, f"{self.mt_task_name}_decoder")
+        encoder_out = self.encoder(
+            src_tokens,
+            src_lengths=src_lengths,
+            tgt_speaker=tgt_speaker,
+            return_all_hiddens=return_all_hiddens,
+        )
+
+        if streaming_config is not None:
+            asr_decoder = getattr(self, "source_unigram_decoder")
+            asr_ctc_out = asr_decoder(encoder_out["encoder_out"][0].detach())
+            asr_probs = self.get_normalized_probs(
+                [asr_ctc_out["encoder_out"].transpose(0, 1)], log_probs=False
+            )
+            asr_repeat = (
+                torch.cat(
+                    (
+                        torch.zeros(
+                            (asr_probs.size(0), 1, asr_probs.size(-1) - 1),
+                            device=asr_probs.device,
+                        ),
+                        asr_probs[:, :-1, 1:],
+                    ),
+                    dim=1,
+                )
+                * asr_probs[:, :, 1:]
+            )
+            asr_repeat = asr_repeat.sum(dim=-1, keepdim=False)
+            asr_blank = asr_probs[:, :, 0]
+            asr_not_blank = 1 - (asr_repeat + asr_blank).detach()
+
+            st_decoder = getattr(self, "ctc_target_unigram_decoder")
+            st_ctc_out = st_decoder(encoder_out["encoder_out"][0].detach())
+            st_probs = self.get_normalized_probs(
+                [st_ctc_out["encoder_out"].transpose(0, 1)], log_probs=False
+            )
+            st_repeat = (
+                torch.cat(
+                    (
+                        torch.zeros(
+                            (st_probs.size(0), 1, st_probs.size(-1) - 1),
+                            device=st_probs.device,
+                        ),
+                        st_probs[:, :-1, 1:],
+                    ),
+                    dim=1,
+                )
+                * st_probs[:, :, 1:]
+            )
+            st_repeat = st_repeat.sum(dim=-1, keepdim=False)
+            st_blank = st_probs[:, :, 0]
+            st_not_blank = 1 - (st_repeat + st_blank).detach()
+
+            streaming_mask = self._build_streaming_mask(
+                asr_not_blank,
+                st_not_blank,
+                prev_output_tokens_mt,
+                streaming_config["k1"],
+                streaming_config["n1"],
+                streaming_config["n1"],
+            )
+            streaming_config["streaming_mask"] = streaming_mask
+
+        # 1. MT decoder
+        mt_decoder_out = mt_decoder(
+            prev_output_tokens_mt,
+            encoder_out=encoder_out,
+            streaming_config=streaming_config,
+        )
+        x = mt_decoder_out[1]["inner_states"][-1]
+        if mt_decoder.layer_norm is not None:
+            x = mt_decoder.layer_norm(x)
+
+        mt_decoder_padding_mask = None
+        if prev_output_tokens_mt.eq(mt_decoder.padding_idx).any():
+            mt_decoder_padding_mask = prev_output_tokens_mt.eq(mt_decoder.padding_idx)
+
+        # 2. T2U encoder
+        if self.synthesizer_encoder is not None:
+            t2u_encoder_out = self.synthesizer_encoder(
+                x,
+                mt_decoder_padding_mask,
+                return_all_hiddens=return_all_hiddens,
+            )
+        else:
+            t2u_encoder_out = {
+                "encoder_out": [x],  # T x B x C
+                "encoder_padding_mask": [mt_decoder_padding_mask],  # B x T
+            }
+
+        # 3. T2U decoder
+        if self.t2u_augmented_cross_attn:
+            decoder_out = self.decoder(
+                prev_output_tokens,
+                encoder_out=encoder_out,
+                encoder_out_aug=t2u_encoder_out,
+            )
+        else:
+            decoder_out = self.decoder(
+                prev_output_tokens,
+                encoder_out=t2u_encoder_out,
+                streaming_config=(
+                    {
+                        "src_wait": int(streaming_config["k2"]),
+                        "src_step": int(streaming_config["n2"]),
+                    }
+                    if streaming_config is not None
+                    else None
+                ),
+            )
+        if return_all_hiddens:
+            decoder_out[-1]["encoder_states"] = encoder_out["encoder_states"]
+            decoder_out[-1]["encoder_padding_mask"] = encoder_out[
+                "encoder_padding_mask"
+            ]
+        decoder_out[-1]["mt_decoder_out"] = mt_decoder_out
+        return decoder_out
+
     @staticmethod
     def add_args(parser):
         parser.add_argument(
@@ -249,213 +456,6 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
             default=-1,
             help="chunk size",
         )
-
-    @classmethod
-    def build_model(cls, args, task):
-        streaming_speech_encoder = cls._build_streaming_speech_encoder(args)
-        unit_ctc_decoder = cls._build_unit_ctc_decoder(
-            args,
-            task.target_dictionary
-        )
-        base_model = cls(streaming_speech_encoder, unit_ctc_decoder)
-
-        base_model.t2u_augmented_cross_attn = getattr(
-            args, "synthesizer_augmented_cross_attention", False
-        )
-
-        # set up multitask decoders
-        base_model.mt_task_name = None
-        base_model.multitask_decoders = {}
-        has_first_pass_decoder = False
-        for task_name, task_obj in task.multitask_tasks.items():
-            if task_obj.is_first_pass_decoder:
-                has_first_pass_decoder = True
-                base_model.mt_task_name = task_name
-
-            in_dim = (
-                args.encoder_embed_dim
-                if task_obj.args.input_from == "encoder"
-                else args.decoder_embed_dim
-            )
-
-            task_decoder = cls._build_multitask_decoder(
-                task_obj.args,
-                task_obj.target_dictionary,
-                in_dim,
-                getattr(args, "translation_decoder_layers", 4),
-                getattr(args, "decoder_embed_dim", 256),
-                getattr(args, "decoder_attention_heads", 4),
-            )
-
-            setattr(base_model, f"{task_name}_decoder", task_decoder)
-
-            if task_obj.args.decoder_type == "ctc":
-                decoder_model_cls = FairseqEncoderModel
-            else:
-                decoder_model_cls = FairseqLanguageModel
-            
-            base_model.multitask_decoders[task_name] = decoder_model_cls(
-                getattr(base_model, f"{task_name}_decoder")
-            )
-
-        assert has_first_pass_decoder, "set at least one intermediate non-CTC decoder"
-
-        # set up encoder on top of the auxiliary MT decoder
-        if getattr(args, "synthesizer_encoder_layers", 0) > 0:
-            #TODO: clean this method
-            base_model.synthesizer_encoder = cls._build_text_to_unit_encoder(args)
-        else:
-            base_model.synthesizer_encoder = None
-
-        if getattr(args, "load_pretrained_mt_from", None):
-            state_dict = checkpoint_utils.load_checkpoint_to_cpu(
-                args.load_pretrained_mt_from
-            )["model"]
-            encoder_state_dict = OrderedDict()
-            decoder_state_dict = OrderedDict()
-            for key in state_dict.keys():
-                if key.startswith("encoder"):
-                    subkey = key[len("encoder") + 1 :]
-                    encoder_state_dict[subkey] = state_dict[key]
-                elif key.startswith("decoder"):
-                    decoder_state_dict[key] = state_dict[key]
-            base_model.encoder.load_state_dict(encoder_state_dict)
-            base_model.multitask_decoders[base_model.mt_task_name].load_state_dict(
-                decoder_state_dict
-            )
-            logger.info(
-                f"Successfully load pretrained Conformer from {args.load_pretrained_mt_from}."
-            )
-
-        return base_model
-    
-    def forward(
-        self,
-        src_tokens,
-        src_lengths,
-        prev_output_tokens,
-        prev_output_tokens_mt,
-        streaming_config=None,
-        tgt_speaker=None,
-        return_all_hiddens=False,
-    ):
-        mt_decoder = getattr(self, f"{self.mt_task_name}_decoder")
-        encoder_out = self.encoder(
-            src_tokens,
-            src_lengths=src_lengths,
-            tgt_speaker=tgt_speaker,
-            return_all_hiddens=return_all_hiddens,
-        )
-
-        if streaming_config is not None:
-            asr_decoder = getattr(self, "source_unigram_decoder")
-            asr_ctc_out = asr_decoder(encoder_out["encoder_out"][0].detach())
-            asr_probs = self.get_normalized_probs(
-                [asr_ctc_out["encoder_out"].transpose(0, 1)], log_probs=False
-            )
-            asr_repeat = (
-                torch.cat(
-                    (
-                        torch.zeros(
-                            (asr_probs.size(0), 1, asr_probs.size(-1) - 1),
-                            device=asr_probs.device,
-                        ),
-                        asr_probs[:, :-1, 1:],
-                    ),
-                    dim=1,
-                )
-                * asr_probs[:, :, 1:]
-            )
-            asr_repeat = asr_repeat.sum(dim=-1, keepdim=False)
-            asr_blank = asr_probs[:, :, 0]
-            asr_not_blank = 1 - (asr_repeat + asr_blank).detach()
-
-            st_decoder = getattr(self, "ctc_target_unigram_decoder")
-            st_ctc_out = st_decoder(encoder_out["encoder_out"][0].detach())
-            st_probs = self.get_normalized_probs(
-                [st_ctc_out["encoder_out"].transpose(0, 1)], log_probs=False
-            )
-            st_repeat = (
-                torch.cat(
-                    (
-                        torch.zeros(
-                            (st_probs.size(0), 1, st_probs.size(-1) - 1),
-                            device=st_probs.device,
-                        ),
-                        st_probs[:, :-1, 1:],
-                    ),
-                    dim=1,
-                )
-                * st_probs[:, :, 1:]
-            )
-            st_repeat = st_repeat.sum(dim=-1, keepdim=False)
-            st_blank = st_probs[:, :, 0]
-            st_not_blank = 1 - (st_repeat + st_blank).detach()
-
-            streaming_mask = self._build_streaming_mask(
-                asr_not_blank,
-                st_not_blank,
-                prev_output_tokens_mt,
-                streaming_config["k1"],
-                streaming_config["n1"],
-                streaming_config["n1"],
-            )
-            streaming_config["streaming_mask"] = streaming_mask
-
-        # 1. MT decoder
-        mt_decoder_out = mt_decoder(
-            prev_output_tokens_mt,
-            encoder_out=encoder_out,
-            streaming_config=streaming_config,
-        )
-        x = mt_decoder_out[1]["inner_states"][-1]
-        if mt_decoder.layer_norm is not None:
-            x = mt_decoder.layer_norm(x)
-
-        mt_decoder_padding_mask = None
-        if prev_output_tokens_mt.eq(mt_decoder.padding_idx).any():
-            mt_decoder_padding_mask = prev_output_tokens_mt.eq(mt_decoder.padding_idx)
-
-        # 2. T2U encoder
-        if self.synthesizer_encoder is not None:
-            t2u_encoder_out = self.synthesizer_encoder(
-                x,
-                mt_decoder_padding_mask,
-                return_all_hiddens=return_all_hiddens,
-            )
-        else:
-            t2u_encoder_out = {
-                "encoder_out": [x],  # T x B x C
-                "encoder_padding_mask": [mt_decoder_padding_mask],  # B x T
-            }
-
-        # 3. T2U decoder
-        if self.t2u_augmented_cross_attn:
-            decoder_out = self.decoder(
-                prev_output_tokens,
-                encoder_out=encoder_out,
-                encoder_out_aug=t2u_encoder_out,
-            )
-        else:
-            decoder_out = self.decoder(
-                prev_output_tokens,
-                encoder_out=t2u_encoder_out,
-                streaming_config=(
-                    {
-                        "src_wait": int(streaming_config["k2"]),
-                        "src_step": int(streaming_config["n2"]),
-                    }
-                    if streaming_config is not None
-                    else None
-                ),
-            )
-        if return_all_hiddens:
-            decoder_out[-1]["encoder_states"] = encoder_out["encoder_states"]
-            decoder_out[-1]["encoder_padding_mask"] = encoder_out[
-                "encoder_padding_mask"
-            ]
-        decoder_out[-1]["mt_decoder_out"] = mt_decoder_out
-        return decoder_out
 
     @classmethod
     def _build_multitask_decoder(

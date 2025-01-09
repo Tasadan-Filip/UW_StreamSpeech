@@ -1,170 +1,13 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
-
-from typing import Optional
-
 import torch
-
+from typing import Optional
+from ctc_unity.modules.streaming_speech_encoder_convolution_layer import StreamingSpeechEncoderConvolutionLayer
+from ctc_unity.modules.streaming_speech_encoder_feed_forward_network import StreamingSpeechEncoderFeedForwardNetwork
 from fairseq.modules import LayerNorm
-from uni_unity.modules.multihead_attention import MultiheadAttention
 from uni_unity.modules.espnet_multihead_attention import (
-    ESPNETMultiHeadedAttention,
-    RelPositionMultiHeadedAttention,
-    RotaryPositionMultiHeadedAttention,
+    RelPositionMultiHeadedAttention
 )
 
-from fairseq.utils import get_activation_fn
-from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
-
-
-class ConvolutionModule(torch.nn.Module):
-    """Convolution block used in the conformer block"""
-
-    def __init__(
-        self,
-        embed_dim,
-        channels,
-        depthwise_kernel_size,
-        dropout,
-        activation_fn="swish",
-        bias=False,
-        export=False,
-        chunk_size=None,
-    ):
-        """
-        Args:
-            embed_dim: Embedding dimension
-            channels: Number of channels in depthwise conv layers
-            depthwise_kernel_size: Depthwise conv layer kernel size
-            dropout: dropout value
-            activation_fn: Activation function to use after depthwise convolution kernel
-            bias: If bias should be added to conv layers
-            export: If layernorm should be exported to jit
-        """
-        super(ConvolutionModule, self).__init__()
-        assert (
-            depthwise_kernel_size - 1
-        ) % 2 == 0, "kernel_size should be a odd number for 'SAME' padding"
-        self.layer_norm = LayerNorm(embed_dim, export=export)
-        self.pointwise_conv1 = torch.nn.Conv1d(
-            embed_dim,
-            2 * channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
-        )
-        self.glu = torch.nn.GLU(dim=1)
-        if chunk_size is None:
-            self.depthwise_conv = torch.nn.Conv1d(
-                channels,
-                channels,
-                depthwise_kernel_size,
-                stride=1,
-                padding=(depthwise_kernel_size - 1) // 2,
-                groups=channels,
-                bias=bias,
-            )
-        else:
-            self.depthwise_conv = ChunkCausalConv1d(
-                channels,
-                channels,
-                depthwise_kernel_size,
-                stride=1,
-                groups=channels,
-                bias=bias,
-                chunk_size=chunk_size,
-            )
-
-        self.batch_norm = torch.nn.BatchNorm1d(channels)
-        self.activation = get_activation_fn(activation_fn)(channels)
-        self.pointwise_conv2 = torch.nn.Conv1d(
-            channels,
-            embed_dim,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
-        )
-        self.dropout = torch.nn.Dropout(dropout)
-
-    def forward(self, x):
-        """
-        Args:
-            x: Input of shape B X T X C
-        Returns:
-          Tensor of shape B X T X C
-        """
-
-        x = self.layer_norm(x)
-        # exchange the temporal dimension and the feature dimension
-        x = x.transpose(1, 2)
-
-        # GLU mechanism
-        x = self.pointwise_conv1(x)  # (batch, 2*channel, dim)
-
-        x = self.glu(x)  # (batch, channel, dim)
-        # 1D Depthwise Conv
-        _x = x.contiguous()
-        x = self.depthwise_conv(x)
-        x = self.batch_norm(x)
-        x = self.activation(x)
-
-        x = self.pointwise_conv2(x)
-        x = self.dropout(x)
-
-        return x.transpose(1, 2)
-
-
-class FeedForwardModule(torch.nn.Module):
-    """Positionwise feed forward layer used in conformer"""
-
-    def __init__(
-        self,
-        input_feat,
-        hidden_units,
-        dropout1,
-        dropout2,
-        activation_fn="swish",
-        bias=True,
-    ):
-        """
-        Args:
-            input_feat: Input feature dimension
-            hidden_units: Hidden unit dimension
-            dropout1: dropout value for layer1
-            dropout2: dropout value for layer2
-            activation_fn: Name of activation function
-            bias: If linear layers should have bias
-        """
-
-        super(FeedForwardModule, self).__init__()
-        self.layer_norm = LayerNorm(input_feat)
-        self.w_1 = torch.nn.Linear(input_feat, hidden_units, bias=bias)
-        self.w_2 = torch.nn.Linear(hidden_units, input_feat, bias=bias)
-        self.dropout1 = torch.nn.Dropout(dropout1)
-        self.dropout2 = torch.nn.Dropout(dropout2)
-        self.activation = get_activation_fn(activation_fn)(hidden_units)
-
-    def forward(self, x):
-        """
-        Args:
-            x: Input Tensor of shape  T X B X C
-        Returns:
-            Tensor of shape T X B X C
-        """
-        x = self.layer_norm(x)
-        x = self.w_1(x)
-        x = self.activation(x)
-        x = self.dropout1(x)
-        x = self.w_2(x)
-        return self.dropout2(x)
-
-
-class ChunkConformerEncoderLayer(torch.nn.Module):
+class StreamingSpeechEncoderLayer(torch.nn.Module):
     """Conformer block based on https://arxiv.org/abs/2005.08100. We currently don't support relative positional encoding in MHA"""
 
     def __init__(
@@ -192,9 +35,9 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
             pos_enc_type: Positional encoding type - abs, rope, rel_pos
         """
         self.pos_enc_type = pos_enc_type
-        super(ChunkConformerEncoderLayer, self).__init__()
+        super(StreamingSpeechEncoderLayer, self).__init__()
 
-        self.ffn1 = FeedForwardModule(
+        self.ffn1 = StreamingSpeechEncoderFeedForwardNetwork(
             embed_dim,
             ffn_embed_dim,
             dropout,
@@ -211,7 +54,7 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
                     dropout=dropout
                 )  
              
-        self.conv_module = ConvolutionModule(
+        self.convolution_layer = StreamingSpeechEncoderConvolutionLayer(
             embed_dim=embed_dim,
             channels=embed_dim,
             depthwise_kernel_size=depthwise_conv_kernel_size,
@@ -220,7 +63,7 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
             chunk_size=chunk_size,
         )
 
-        self.ffn2 = FeedForwardModule(
+        self.ffn2 = StreamingSpeechEncoderFeedForwardNetwork(
             embed_dim,
             ffn_embed_dim,
             dropout,
@@ -265,7 +108,7 @@ class ChunkConformerEncoderLayer(torch.nn.Module):
         residual = x
         # TBC to BTC
         x = x.transpose(0, 1)
-        x = self.conv_module(x)
+        x = self.convolution_layer(x)
         # BTC to TBC
         x = x.transpose(0, 1)
         x = residual + x

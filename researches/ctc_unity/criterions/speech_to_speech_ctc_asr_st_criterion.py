@@ -164,8 +164,8 @@ class SpeechToUnit2passCTCASRSTMultitaskTaskCriterion(
 
             for conv in model.encoder.subsample.conv_layers:
                 conv.chunk_size = chunk_size
-            for layer in model.encoder.conformer_layers:
-                layer.conv_module.depthwise_conv.chunk_size = chunk_size
+            for layer in model.encoder.streaming_speech_encoder_layers:
+                layer.convolution_layer.depthwise_conv.chunk_size = chunk_size
 
         net_output, extra = model(**net_input_concat, streaming_config=streaming_config)
         loss, nll_loss, rdrop_kl_loss = self.compute_loss(
