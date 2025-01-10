@@ -1,7 +1,7 @@
 import torch
 from fairseq.utils import get_activation_fn
 from fairseq.modules import LayerNorm
-from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
 
 
 class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
