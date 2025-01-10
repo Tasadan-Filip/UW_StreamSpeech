@@ -34,7 +34,7 @@ class TextToUnitEncoder(FairseqEncoder):
 
         extra = {
                 "encoder_mask": (
-                    self.buffered_future_mask(x) if self.unidirectional else None
+                    self._buffered_future_mask(x) if self.unidirectional else None
                 )
             }
 
@@ -59,7 +59,7 @@ class TextToUnitEncoder(FairseqEncoder):
             "src_lengths": [],
         }
 
-    def buffered_future_mask(self, tensor):
+    def _buffered_future_mask(self, tensor):
         dim = tensor.size(0)
         # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
         if (
@@ -72,52 +72,3 @@ class TextToUnitEncoder(FairseqEncoder):
             )
         self._future_mask = self._future_mask.to(tensor)
         return self._future_mask[:dim, :dim]
-
-    def buffered_chunk_mask(self, tensor, tgt_step):
-        dim = tensor.size(0)
-        idx = torch.arange(0, dim, device=tensor.device).unsqueeze(1)
-        idx = (idx // tgt_step + 1) * tgt_step
-        idx = idx.clamp(1, dim)
-        tmp = torch.arange(0, dim, device=tensor.device).unsqueeze(0).repeat(dim, 1)
-        chunk_mask = torch.where(
-            idx <= tmp, torch.tensor(float("-inf")), torch.tensor(0.0)
-        )
-        return chunk_mask[:dim, :dim]
-
-    def reorder_encoder_out(self, encoder_out, new_order):
-        new_encoder_out = (
-            []
-            if len(encoder_out["encoder_out"]) == 0
-            else [x.index_select(1, new_order) for x in encoder_out["encoder_out"]]
-        )
-
-        new_encoder_padding_mask = (
-            []
-            if len(encoder_out["encoder_padding_mask"]) == 0
-            else [
-                x.index_select(0, new_order)
-                for x in encoder_out["encoder_padding_mask"]
-            ]
-        )
-
-        new_encoder_embedding = (
-            []
-            if len(encoder_out["encoder_embedding"]) == 0
-            else [
-                x.index_select(0, new_order) for x in encoder_out["encoder_embedding"]
-            ]
-        )
-
-        encoder_states = encoder_out["encoder_states"]
-        if len(encoder_states) > 0:
-            for idx, state in enumerate(encoder_states):
-                encoder_states[idx] = state.index_select(1, new_order)
-
-        return {
-            "encoder_out": new_encoder_out,  # T x B x C
-            "encoder_padding_mask": new_encoder_padding_mask,  # B x T
-            "encoder_embedding": new_encoder_embedding,  # B x T x C
-            "encoder_states": encoder_states,  # List[T x B x C]
-            "src_tokens": [],  # B x T
-            "src_lengths": [],  # B x 1
-        }

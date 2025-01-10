@@ -54,7 +54,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
                 - the decoder's output of shape `(batch, tgt_len, vocab)`
                 - a dictionary with any model-specific outputs
         """
-        x, extra = self.extract_features(
+        x, extra = self._extract_features(
             prev_output_tokens,
             encoder_out=encoder_out,
             incremental_state=incremental_state,
@@ -65,10 +65,10 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         )
 
         if not features_only:
-            x = self.output_layer(x)
+            x = self._output_layer(x)
         return x, extra
 
-    def extract_features(
+    def _extract_features(
         self,
         prev_output_tokens,
         encoder_out: Optional[Dict[str, List[Tensor]]],
@@ -78,7 +78,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         alignment_heads: Optional[int] = None,
         streaming_config=None,
     ):
-        return self.extract_features_scriptable(
+        return self._extract_features_scriptable(
             prev_output_tokens,
             encoder_out,
             incremental_state,
@@ -94,7 +94,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
     this function is made to be used in the subclass instead.
     """
 
-    def extract_features_scriptable(
+    def _extract_features_scriptable(
         self,
         prev_output_tokens,
         encoder_out: Optional[Dict[str, List[Tensor]]],
@@ -178,7 +178,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
                 "probs" in streaming_config.keys()
                 and streaming_config["probs"] is not None
             ):
-                streaming_mask = self.build_streaming_mask_with_probs(
+                streaming_mask = self._build_streaming_mask_with_probs(
                     streaming_config["probs"],
                     prev_output_tokens.transpose(0, 1),
                     streaming_config["src_wait"],
@@ -186,7 +186,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
                     streaming_config["tgt_step"],
                 )
             else:
-                streaming_mask = self.build_streaming_mask(
+                streaming_mask = self._build_streaming_mask(
                     prev_output_tokens.transpose(0, 1),
                     enc.size(0),
                     prev_output_tokens.transpose(0, 1).size(0),
@@ -206,7 +206,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         inner_states: List[Optional[Tensor]] = [x]
         for idx, layer in enumerate(self.layers):
             if incremental_state is None and not full_context_alignment:
-                self_attn_mask = self.buffered_future_mask(x)
+                self_attn_mask = self._buffered_future_mask(x)
             else:
                 self_attn_mask = None
 
@@ -243,14 +243,14 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
 
         return x, {"attn": [attn], "inner_states": inner_states}
 
-    def build_streaming_mask(self, x, src_len, tgt_len, src_wait, src_step, tgt_step):
+    def _build_streaming_mask(self, x, src_len, tgt_len, src_wait, src_step, tgt_step):
         idx = torch.arange(0, tgt_len, device=x.device).unsqueeze(1)
         idx = (idx // tgt_step + 1) * src_step + src_wait
         idx = idx.clamp(1, src_len)
         tmp = torch.arange(0, src_len, device=x.device).unsqueeze(0).repeat(tgt_len, 1)
         return tmp >= idx
 
-    def build_streaming_mask_with_probs(self, x, y, src_wait, src_step, tgt_step):
+    def _build_streaming_mask_with_probs(self, x, y, src_wait, src_step, tgt_step):
         tgt_len = y.size(0)
         bsz, src_len = x.size()
         idx = torch.arange(0, tgt_len, device=x.device).unsqueeze(0).unsqueeze(2)
@@ -259,7 +259,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         tmp = x.cumsum(dim=-1).unsqueeze(1)
         return tmp >= idx
 
-    def output_layer(self, features):
+    def _output_layer(self, features):
         """Project features to the vocabulary size."""
         if self.adaptive_softmax is None:
             # project back to size of vocabulary
@@ -267,13 +267,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         else:
             return features
 
-    def max_positions(self):
-        """Maximum output length supported by the decoder."""
-        if self.embed_positions is None:
-            return self.max_target_positions
-        return min(self.max_target_positions, self.embed_positions.max_positions)
-
-    def buffered_future_mask(self, tensor):
+    def _buffered_future_mask(self, tensor):
         dim = tensor.size(0)
         # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
         if (
@@ -286,42 +280,3 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
             )
         self._future_mask = self._future_mask.to(tensor)
         return self._future_mask[:dim, :dim]
-
-    def upgrade_state_dict_named(self, state_dict, name):
-        """Upgrade a (possibly old) state dict for new versions of fairseq."""
-        if f"{name}.output_projection.weight" not in state_dict:
-            if self.share_input_output_embed:
-                embed_out_key = f"{name}.embed_tokens.weight"
-            else:
-                embed_out_key = f"{name}.embed_out"
-            if embed_out_key in state_dict:
-                state_dict[f"{name}.output_projection.weight"] = state_dict[
-                    embed_out_key
-                ]
-                if not self.share_input_output_embed:
-                    del state_dict[embed_out_key]
-
-        for i in range(self.num_layers):
-            # update layer norms
-            layer_norm_map = {
-                "0": "self_attn_layer_norm",
-                "1": "encoder_attn_layer_norm",
-                "2": "final_layer_norm",
-            }
-            for old, new in layer_norm_map.items():
-                for m in ("weight", "bias"):
-                    k = "{}.layers.{}.layer_norms.{}.{}".format(name, i, old, m)
-                    if k in state_dict:
-                        state_dict["{}.layers.{}.{}.{}".format(name, i, new, m)] = (
-                            state_dict[k]
-                        )
-                        del state_dict[k]
-
-        version_key = "{}.version".format(name)
-        if utils.item(state_dict.get(version_key, torch.Tensor([1]))[0]) <= 2:
-            # earlier checkpoints did not normalize after the stack of layers
-            self.layer_norm = None
-            self.normalize = False
-            state_dict[version_key] = torch.Tensor([1])
-
-        return state_dict

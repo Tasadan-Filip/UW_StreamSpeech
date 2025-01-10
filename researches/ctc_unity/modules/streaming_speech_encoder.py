@@ -87,6 +87,30 @@ class StreamingSpeechEncoder(FairseqEncoder):
             self.spk_emb_proj = Linear(
                 args.encoder_embed_dim + args.speaker_embed_dim, args.encoder_embed_dim
             )
+    
+    def forward(self, src_tokens, src_lengths, tgt_speaker=None, return_all_hiddens=False):
+        if self.num_updates < self.encoder_freezing_updates:
+            with torch.no_grad():
+                out = self._forward(
+                    src_tokens,
+                    src_lengths,
+                    return_all_hiddens=return_all_hiddens,
+                )
+        else:
+            out = self._forward(
+                src_tokens,
+                src_lengths,
+                return_all_hiddens=return_all_hiddens,
+            )
+
+        if self.spk_emb_proj:
+            x = out["encoder_out"][0]
+            seq_len, bsz, _ = x.size()
+            tgt_speaker_emb = tgt_speaker.view(1, bsz, -1).expand(seq_len, bsz, -1)
+            x = self.spk_emb_proj(torch.cat([x, tgt_speaker_emb], dim=2))
+            out["encoder_out"][0] = x
+
+        return out
 
     def _forward(self, src_tokens, src_lengths, return_all_hiddens=False):
         """
@@ -114,7 +138,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
         # extra={
         #     'encoder_mask':self.buffered_future_mask(x) if self.unidirectional else None
         # }
-        extra = {"encoder_mask": self.buffered_chunk_mask(x) if self.chunk else None}
+        extra = {"encoder_mask": self._buffered_chunk_mask(x) if self.chunk else None}
 
         # x is T X B X C
         for layer in self.streaming_speech_encoder_layers:
@@ -133,45 +157,7 @@ class StreamingSpeechEncoder(FairseqEncoder):
             "src_lengths": [],
         }
 
-    def forward(self, src_tokens, src_lengths, tgt_speaker=None, return_all_hiddens=False):
-        if self.num_updates < self.encoder_freezing_updates:
-            with torch.no_grad():
-                out = self._forward(
-                    src_tokens,
-                    src_lengths,
-                    return_all_hiddens=return_all_hiddens,
-                )
-        else:
-            out = self._forward(
-                src_tokens,
-                src_lengths,
-                return_all_hiddens=return_all_hiddens,
-            )
-
-        if self.spk_emb_proj:
-            x = out["encoder_out"][0]
-            seq_len, bsz, _ = x.size()
-            tgt_speaker_emb = tgt_speaker.view(1, bsz, -1).expand(seq_len, bsz, -1)
-            x = self.spk_emb_proj(torch.cat([x, tgt_speaker_emb], dim=2))
-            out["encoder_out"][0] = x
-
-        return out
-
-    def buffered_future_mask(self, tensor):
-        dim = tensor.size(0)
-        # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
-        if (
-            self._future_mask.size(0) == 0
-            or (not self._future_mask.device == tensor.device)
-            or self._future_mask.size(0) < dim
-        ):
-            self._future_mask = torch.triu(
-                utils.fill_with_neg_inf(torch.zeros([dim, dim])), 1
-            )
-        self._future_mask = self._future_mask.to(tensor)
-        return self._future_mask[:dim, :dim]
-
-    def buffered_chunk_mask(self, tensor):
+    def _buffered_chunk_mask(self, tensor):
         dim = tensor.size(0)
         # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
         if (
@@ -190,11 +176,3 @@ class StreamingSpeechEncoder(FairseqEncoder):
 
         self._chunk_mask = self._chunk_mask.to(tensor)
         return self._chunk_mask[:dim, :dim]
-
-    def reorder_encoder_out(self, encoder_out, new_order):
-        """Required method for a FairseqEncoder. Calls the method from the parent class"""
-        return S2TTransformerEncoder.reorder_encoder_out(self, encoder_out, new_order)
-
-    def set_num_updates(self, num_updates):
-        super().set_num_updates(num_updates)
-        self.num_updates = num_updates
