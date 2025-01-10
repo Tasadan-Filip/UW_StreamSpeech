@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 
-class ChunkCausalConv1d(torch.nn.Conv1d):
+class StreamingSpeechEncoderConvolutionLayerBase(torch.nn.Conv1d):
     def __init__(
         self,
         in_channels,
@@ -20,7 +20,7 @@ class ChunkCausalConv1d(torch.nn.Conv1d):
         bias=True,
         chunk_size=8,
     ):
-        super(ChunkCausalConv1d, self).__init__(
+        super(StreamingSpeechEncoderConvolutionLayerBase, self).__init__(
             in_channels,
             out_channels,
             kernel_size=kernel_size,
@@ -40,7 +40,7 @@ class ChunkCausalConv1d(torch.nn.Conv1d):
             output_len = (
                 input.size(-1) + 2 * self.__padding - self.kernel_size[0]
             ) // self.stride[0] + 1
-            padded_input = self.pad_to_chunk_size(input)
+            padded_input = self._pad_to_chunk_size(input)
             unfolded_input = padded_input.unfold(
                 -1, self.__k, self.__k - self.__padding
             )
@@ -51,7 +51,7 @@ class ChunkCausalConv1d(torch.nn.Conv1d):
                 .contiguous()
                 .view(-1, n_channels, seq_length)
             )
-            res = super(ChunkCausalConv1d, self).forward(unfolded_input)
+            res = super(StreamingSpeechEncoderConvolutionLayerBase, self).forward(unfolded_input)
             res = (
                 res.contiguous()
                 .view(bsz, chunks, self.out_channels, -1)
@@ -61,11 +61,11 @@ class ChunkCausalConv1d(torch.nn.Conv1d):
         else:
             unfolded_input = F.pad(input, (self.__padding, 0))
             unfolded_input = F.pad(unfolded_input, (0, self.__padding))
-            res = super(ChunkCausalConv1d, self).forward(unfolded_input)
+            res = super(StreamingSpeechEncoderConvolutionLayerBase, self).forward(unfolded_input)
 
         return res
 
-    def pad_to_chunk_size(self, input_tensor):
+    def _pad_to_chunk_size(self, input_tensor):
         _, _, seq_length = input_tensor.size()
 
         input_tensor = F.pad(input_tensor, (self.__padding, 0))

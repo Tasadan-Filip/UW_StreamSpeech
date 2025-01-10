@@ -1,7 +1,7 @@
 import torch
 from fairseq.utils import get_activation_fn
 from fairseq.modules import LayerNorm
-from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
+from ctc_unity.modules.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
 
 
 class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
@@ -42,18 +42,7 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
             bias=bias,
         )
         self.glu = torch.nn.GLU(dim=1)
-        if chunk_size is None:
-            self.depthwise_conv = torch.nn.Conv1d(
-                channels,
-                channels,
-                depthwise_kernel_size,
-                stride=1,
-                padding=(depthwise_kernel_size - 1) // 2,
-                groups=channels,
-                bias=bias,
-            )
-        else:
-            self.depthwise_conv = ChunkCausalConv1d(
+        self.depthwise_conv = StreamingSpeechEncoderConvolutionLayerBase(
                 channels,
                 channels,
                 depthwise_kernel_size,
@@ -62,7 +51,6 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
                 bias=bias,
                 chunk_size=chunk_size,
             )
-
         self.batch_norm = torch.nn.BatchNorm1d(channels)
         self.activation = get_activation_fn(activation_fn)(channels)
         self.pointwise_conv2 = torch.nn.Conv1d(

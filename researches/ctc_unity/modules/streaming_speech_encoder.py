@@ -7,18 +7,14 @@ import logging
 import math
 
 import torch
-from fairseq import utils
 from fairseq.data.data_utils import lengths_to_padding_mask
 from fairseq.models import FairseqEncoder
 
 from ctc_unity.modules.streaming_speech_encoder_convolution_subsampler import (
     StreamingSpeechEncoderConvolutionSubsampler
 )
-from fairseq.models.speech_to_text.s2t_transformer import (
-    S2TTransformerEncoder
-)
 from fairseq.modules import RelPositionalEncoding
-from ctc_unity.modules.encoder_conformer_layer import StreamingSpeechEncoderLayer
+from ctc_unity.modules.streaming_speech_encoder_layer import StreamingSpeechEncoderLayer
 from fairseq.models.transformer import Linear
 
 logger = logging.getLogger(__name__)

@@ -6,9 +6,8 @@
 
 from typing import List
 
-import torch
 import torch.nn as nn
-from ctc_unity.modules.chunk_causal_conv1d import ChunkCausalConv1d
+from ctc_unity.modules.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
 
 
 class StreamingSpeechEncoderConvolutionSubsampler(nn.Module):
@@ -47,7 +46,7 @@ class StreamingSpeechEncoderConvolutionSubsampler(nn.Module):
             )
         else:
             self.conv_layers = nn.ModuleList(
-                ChunkCausalConv1d(
+                StreamingSpeechEncoderConvolutionLayerBase(
                     in_channels if i == 0 else mid_channels // 2,
                     mid_channels if i < self.n_layers - 1 else out_channels * 2,
                     k,
