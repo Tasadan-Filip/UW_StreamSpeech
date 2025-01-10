@@ -11,7 +11,7 @@ from torch import Tensor
 
 from fairseq.models.transformer import Linear
 
-from ctc_unity.modules.transformer_decoder_base import TransformerDecoderBase
+from ctc_unity.modules.transformer_decoder_base.transformer_decoder_base import TransformerDecoderBase
 from fairseq.models.transformer import TransformerConfig
 from fairseq import utils
 

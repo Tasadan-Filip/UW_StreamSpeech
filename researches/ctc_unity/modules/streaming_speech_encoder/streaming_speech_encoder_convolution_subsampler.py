@@ -7,7 +7,7 @@
 from typing import List
 
 import torch.nn as nn
-from ctc_unity.modules.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
 
 
 class StreamingSpeechEncoderConvolutionSubsampler(nn.Module):

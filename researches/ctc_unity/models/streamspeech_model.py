@@ -7,7 +7,7 @@ import copy
 import logging
 from pathlib import Path
 from ctc_unity.modules.simultaneous_text_decoder import SimultaneousTextDecoder
-from ctc_unity.modules.streaming_speech_encoder import StreamingSpeechEncoder
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
 from typing import OrderedDict
 
@@ -19,7 +19,7 @@ from fairseq.models import (
 )
 from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
 from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
-from ctc_unity.modules.text_to_unit_encoder import (
+from ctc_unity.modules.text_to_unit_encoder.text_to_unit_encoder import (
     TextToUnitEncoder
 )
 from fairseq.models.speech_to_speech.s2s_transformer import (
@@ -569,7 +569,6 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         tmp3 = torch.arange(0, src_len, device=st.device).unsqueeze(0).unsqueeze(1)
 
         return tmp3 >= idx2
-
 
 @register_model_architecture(model_name="streamspeech", arch_name="streamspeech")
 def ctc_unity_conformer_architecture_base(args):

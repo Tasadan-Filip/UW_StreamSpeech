@@ -7,7 +7,7 @@ import torch.nn as nn
 from fairseq import utils
 from fairseq.models import FairseqEncoder
 from fairseq.modules import LayerNorm
-from ctc_unity.modules.text_to_unit_encoder_layer import TextToUnitEncoderLayer
+from ctc_unity.modules.text_to_unit_encoder.text_to_unit_encoder_layer import TextToUnitEncoderLayer
 from fairseq.models.transformer import TransformerConfig
 
 class TextToUnitEncoder(FairseqEncoder):

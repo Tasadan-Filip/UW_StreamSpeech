@@ -5,7 +5,7 @@
 
 import math
 
-from ctc_unity.modules.transformer_decoder_base_layer import TransformerDecoderBaseLayer
+from ctc_unity.modules.transformer_decoder_base.transformer_decoder_base_layer import TransformerDecoderBaseLayer
 import torch
 import torch.nn as nn
 from fairseq import utils

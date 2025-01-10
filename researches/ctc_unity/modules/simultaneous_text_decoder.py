@@ -5,7 +5,7 @@
 
 from typing import Dict, List, Optional
 
-from ctc_unity.modules.transformer_decoder_base import TransformerDecoderBase
+from ctc_unity.modules.transformer_decoder_base.transformer_decoder_base import TransformerDecoderBase
 import torch
 from torch import Tensor
 from fairseq import utils
