@@ -7,10 +7,13 @@
 3. Install all dependencies: `uv sync`
 
 To use `fairseq-cli` commands you can either:
+
 **A**: Enable virtual environment: `source .venv/bin/activate`; then you can run like e.x. `fairseq-train`
+
 **B**: Use `uv run ...`: e.x. `uv run fairseq-train`
 
 [Working with dependencies in UV](https://docs.astral.sh/uv/guides/projects/#managing-dependencies)
+
 [Running scripts/files/tools/apps/etc. with UV](https://docs.astral.sh/uv/guides/projects/#running-commands)
 
 
