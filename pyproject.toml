@@ -1,0 +1,31 @@
+[project]
+name = "uw-streamspeech"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cython==3.0.10",
+    "ffmpeg>=1.4",
+    "numpy>=2.2.1",
+    "sox>=1.5.0",
+    "torch==2.0.1",
+    "torchaudio==2.0.2",
+    "torchvision==0.15.2",
+    "fairseq",
+    "simuleval",
+]
+
+[tool.uv]
+cache-dir = ".uv-cache/"
+
+[tool.uv.sources]
+simuleval = { path = "SimulEval" }
+fairseq = { path = "fairseq" }
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.24.0",
+    "ruff>=0.9.1",
+]
+

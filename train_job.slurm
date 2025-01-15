@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#SBATCH --job-name=stream_speech_train_job
+#SBATCH --account=cse
+#SBATCH --partition=ckpt-g2
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=30G
+#SBATCH --gpus=2
+#SBATCH --time=24:00:00
+#SBATCH --ntasks-per-node=1
+#SBATCH -o log/%x_%j.out
+
+tar -xvf /gscratch/intelligentsystems/common_datasets/translation/data_stream_1channel_processed.tar.gz -C /scr/
+
+./train.simul-s2st-tuochao.sh

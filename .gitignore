@@ -1,4 +1,5 @@
 *.pyc
-# pixi environments
-.pixi
 *.egg-info
+
+# UV package manager cache
+.uv-cache
