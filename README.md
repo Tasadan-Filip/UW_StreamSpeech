@@ -1,3 +1,19 @@
+# UW StreamSpeech
+
+## Hyak setup
+
+1. Ensure you are not on a login node: `salloc ...`
+2. Load `gcc` module (required to build `fairseq`): `module load gcc/11.2.0`
+3. Install all dependencies: `uv sync`
+
+To use `fairseq-cli` commands you can either:
+**A**: Enable virtual environment: `source .venv/bin/activate`; then you can run like e.x. `fairseq-train`
+**B**: Use `uv run ...`: e.x. `uv run fairseq-train`
+
+[Working with dependencies in UV](https://docs.astral.sh/uv/guides/projects/#managing-dependencies)
+[Running scripts/files/tools/apps/etc. with UV](https://docs.astral.sh/uv/guides/projects/#running-commands)
+
+
 # StreamSpeech
 
 [![arXiv](https://img.shields.io/badge/arXiv-2406.03049-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2406.03049)
