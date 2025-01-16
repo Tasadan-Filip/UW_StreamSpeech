@@ -1,3 +1,10 @@
 *.pyc
 pretrain_models/mHuBERT/
 pretrain_models/unit-based_HiFi-GAN_vocoder/
+*.egg-info
+
+# UV package manager cache
+.uv-cache
+
+# Slurm job logs
+log/
