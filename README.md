@@ -1,7 +1,7 @@
 # UW StreamSpeech
 
 ## Hyak setup
-
+0. Install `uv` package manager in your `(base)` conda env: (`conda activate base`/`conda deactivate`, as necessary), then: `conda install conda-forge::uv`
 1. Ensure you are not on a login node: `salloc ...`
 2. Load `gcc` module (required to build `fairseq`): `module load gcc/11.2.0`
 3. Install all dependencies: `uv sync`
