@@ -3,3 +3,6 @@
 
 # UV package manager cache
 .uv-cache
+
+# Slurm job logs
+log/

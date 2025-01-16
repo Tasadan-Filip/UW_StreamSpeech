@@ -7,21 +7,25 @@ requires-python = ">=3.10"
 dependencies = [
     "cython==3.0.10",
     "ffmpeg>=1.4",
-    "numpy>=2.2.1",
+    "numpy>=1.26,<2.0",
     "sox>=1.5.0",
     "torch==2.0.1",
     "torchaudio==2.0.2",
     "torchvision==0.15.2",
     "fairseq",
     "simuleval",
+    "editdistance",
 ]
 
 [tool.uv]
 cache-dir = ".uv-cache/"
 
 [tool.uv.sources]
-simuleval = { path = "SimulEval" }
-fairseq = { path = "fairseq" }
+simuleval = { workspace = true }
+fairseq = { workspace = true }
+
+[tool.uv.workspace]
+members = ["fairseq", "SimulEval"]
 
 [dependency-groups]
 dev = [

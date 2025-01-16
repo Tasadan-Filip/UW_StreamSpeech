@@ -4,6 +4,22 @@ version = "0.12.2"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+            "cffi",
+            "cython",
+            "hydra-core>=1.0.7,<1.1",
+            "omegaconf<2.1",
+            "numpy>=1.21.3",
+            "regex",
+            "sacrebleu>=1.4.12",
+            "torch>=1.12",
+            "tqdm",
+            "bitarray",
+            "torchaudio>=0.8.0",
+            "scikit-learn",
+            "packaging",
+            "tensorboardX",
+        ]
 
 [project.scripts]
 fairseq-eval-lm ="fairseq_cli.eval_lm:cli_main"
@@ -22,7 +38,7 @@ requires = [
   "wheel",
   "cython",
   "numpy>=1.21.3",
-  "torch>=1.10",
+  "torch==2.01",
 ]
 build-backend = "setuptools.build_meta"
 

@@ -10,7 +10,6 @@
 #SBATCH --time=24:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH -o log/%x_%j.out
+#SBATCH -e log/%x_%j.err
 
-tar -xvf /gscratch/intelligentsystems/common_datasets/translation/data_stream_1channel_processed.tar.gz -C /scr/
-
-./train.simul-s2st-tuochao.sh
+./download_dataset_and_train.sh

@@ -1,12 +1,12 @@
 export CUDA_VISIBLE_DEVICES=0,1 ## number of GPU in your node
 export SLURM_NTASKS=1
-## Steps change to your path where you install 
-export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/pbilko/UW_StreamSpeech/fairseq
+## Steps change to your path where you install
+export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech/fairseq
 
 LANG=fr
 DATA_ROOT=/scr/data_streamspeech/cvss/cvss-c ### the path where you untar the dataset
 DATA=$DATA_ROOT/${LANG}-en/fbank2unit
-CKPT=/gscratch/intelligentsystems/pbilko/simul-s2st.singlechannel-${LANG} # the path you want to save the checkpoint
+CKPT=/gscratch/intelligentsystems/$USER/simul-s2st.singlechannel-${LANG} # the path you want to save the checkpoint
 
 # Step3: --update-freq * num_GPU be constant 4* 2
 

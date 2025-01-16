@@ -1,23 +1,23 @@
 export CUDA_VISIBLE_DEVICES=0
 export SLURM_NTASKS=1
-export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/tuochao/Spatial-StreamSpeech/StreamSpeech/fairseq # step1 change to your fairseq path (under StreamSpeech)
-export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/tuochao/Spatial-StreamSpeech/StreamSpeech/SimulEval  # step2 change to your SimulEval path (under StreamSpeech)
+export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech/fairseq # step1 change to your fairseq path (under StreamSpeech)
+export PYTHONPATH=$PYTHONPATH:/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech/SimulEval  # step2 change to your SimulEval path (under StreamSpeech)
 
-ROOT=/gscratch/intelligentsystems/tuochao/Spatial-StreamSpeech/StreamSpeech # step3: change to your StreamSpeech path
+ROOT=/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech # step3: change to your StreamSpeech path
 DATA_ROOT=/scr/data_streamspeech_es/cvss/cvss-c # change to your data untar path
 PRETRAIN_ROOT=$ROOT/pretrain_models 
 VOCODER_CKPT=$PRETRAIN_ROOT/unit-based_HiFi-GAN_vocoder/mHuBERT.layer11.km1000.en/g_00500000
 VOCODER_CFG=$PRETRAIN_ROOT/unit-based_HiFi-GAN_vocoder/mHuBERT.layer11.km1000.en/config.json
 
 LANG=fr
-file=/data/zhangshaolei/StreamSpeech_model/streamspeech.simultaneous.${LANG}-en.pt # step4: the checkpoint you trained 
+file=/gscratch/intelligentsystems/translation_groups/$USER/streamspeech.simultaneous.${LANG}-en.pt # step4: the checkpoint you trained 
 output_dir=$ROOT/res/streamspeech.simultaneous.${LANG}-en/simul-s2st # step5: the output path to save output results and wavefiles
 
 chunk_size=960
 
 PYTHONPATH=$ROOT/fairseq simuleval --data-bin ${DATA_ROOT}/${LANG}-en/fbank2unit \
     --user-dir ${ROOT}/researches/ctc_unity --agent-dir ${ROOT}/agent \
-    --source ${ROOT}/example/wav_list.txt --target  ${ROOT}/example/target.txt \
+    --source ${DATA_ROOT}/${LANG}-en/simuleval/test/wav_list.txt --target  ${DATA_ROOT}/${LANG}-en/simuleval/test/target.txt \
     --model-path $file \
     --config-yaml config_gcmvn.yaml --multitask-config-yaml config_unity_asr_st_ctcst.yaml \
     --agent $ROOT/agent/speech_to_speech.streamspeech.agent.py \
