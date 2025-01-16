@@ -16,6 +16,11 @@ To use `fairseq-cli` commands you can either:
 
 [Running scripts/files/tools/apps/etc. with UV](https://docs.astral.sh/uv/guides/projects/#running-commands)
 
+## Run training in the background
+`sbatch train_job.slurm`
+
+Then you can watch the output (`.out`) and error (`.err`) logs in the `log/` directory. E.x. `watch tail -n 50 logs/<job_name>.out` will give you a live feed from the STDOUT of your running job.
+
 
 # StreamSpeech
 
