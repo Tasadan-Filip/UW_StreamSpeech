@@ -195,7 +195,7 @@ class TransformerDecoderBaseLayer(nn.Module):
         if self.attn_ln is not None:
             x = self.attn_ln(x)
         x = self.dropout_module(x)
-        x = self._residual_connection(x, residual)
+        x = self._add_residual_connection(x, residual)
         if not self.normalize_before:
             x = self.self_attn_layer_norm(x)
 
@@ -229,6 +229,7 @@ class TransformerDecoderBaseLayer(nn.Module):
             else:
                 static_kv = True
 
+            # cross attention
             x, attn = self.encoder_attn(
                 query=x,
                 key=encoder_out,
@@ -242,7 +243,7 @@ class TransformerDecoderBaseLayer(nn.Module):
             )
 
             x = self.dropout_module(x)
-            x = self._residual_connection(x, residual)
+            x = self._add_residual_connection(x, residual)
             if not self.normalize_before:
                 x = self.encoder_attn_layer_norm(x)
 
@@ -258,7 +259,7 @@ class TransformerDecoderBaseLayer(nn.Module):
         x = self.dropout_module(x)
         if self.w_resid is not None:
             residual = torch.mul(self.w_resid, residual)
-        x = self._residual_connection(x, residual)
+        x = self._add_residual_connection(x, residual)
         if not self.normalize_before:
             x = self.final_layer_norm(x)
         if self.onnx_trace and incremental_state is not None:
@@ -309,5 +310,5 @@ class TransformerDecoderBaseLayer(nn.Module):
             xformers_att_config=cfg.encoder.xformers_att_config,
         )
 
-    def _residual_connection(self, x, residual):
+    def _add_residual_connection(self, x, residual):
         return residual + x
