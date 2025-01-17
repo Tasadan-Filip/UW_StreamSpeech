@@ -22,7 +22,7 @@ dependencies = [
     ]
 
 [project.scripts]
-simuleval = "simuleval:main"
+simuleval = "simuleval.cli:main"
 
 [build-system]
 requires = ["setuptools>=61"]
