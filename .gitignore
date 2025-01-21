@@ -8,3 +8,5 @@ pretrain_models/unit-based_HiFi-GAN_vocoder/
 
 # Slurm job logs
 log/
+pretrain_models/mHuBERT/
+pretrain_models/unit-based_HiFi-GAN_vocoder/
