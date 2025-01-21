@@ -7,6 +7,7 @@ LANG=fr
 DATA_ROOT=/scr/data_streamspeech/cvss/cvss-c ### the path where you untar the dataset
 DATA=$DATA_ROOT/${LANG}-en/fbank2unit
 CKPT=/gscratch/intelligentsystems/$USER/simul-s2st.singlechannel-${LANG} # the path you want to save the checkpoint
+TENSORBOARD_LOGS=$CKPT/tensorboard # the path where you save tensorboard outputs
 
 # Step3: --update-freq * num_GPU be constant 4* 2
 
@@ -37,4 +38,5 @@ fairseq-train $DATA \
   --attn-type espnet --pos-enc-type rel_pos \
   --keep-interval-updates 40 \
   --keep-best-checkpoints 20 \
-  --seed 1  --fp16 --num-workers 8
+  --seed 1  --fp16 --num-workers 8 \
+  --tensorboard-logdir $TENSORBOARD_LOGS

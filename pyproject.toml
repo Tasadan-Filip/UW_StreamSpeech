@@ -12,25 +12,33 @@ dependencies = [
     "torch==2.0.1",
     "torchaudio==2.0.2",
     "torchvision==0.15.2",
-    "fairseq",
-    "simuleval",
+    "fairseq==0.12.2",
+    "simuleval==1.1.0",
     "editdistance",
     "sentencepiece>=0.2.0",
+    "scikit-learn>=1.6.1",
+    "tensorboardx>=2.6.2.2",
 ]
 
 [tool.uv]
 cache-dir = ".uv-cache/"
 
 [tool.uv.sources]
-simuleval = { workspace = true }
-fairseq = { workspace = true }
+# simuleval = { workspace = true }
+# fairseq = { workspace = true }
 
 [tool.uv.workspace]
-members = ["fairseq", "SimulEval"]
+# members = ["fairseq", "SimulEval"]
+exclude = ["fairseq", "SimulEval"]
 
 [dependency-groups]
 dev = [
     "basedpyright>=1.24.0",
+    "pyright>=1.1.392.post0",
     "ruff>=0.9.1",
 ]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+# extraPaths = ["fairseq/fairseq", "SimulEval/simuleval"]

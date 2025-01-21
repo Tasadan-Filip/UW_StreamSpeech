@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=stream_speech_train_job
-#SBATCH --account=cse
+#SBATCH --account=intelligentsystems
 #SBATCH --partition=ckpt-g2
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
