@@ -13,7 +13,7 @@ from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from fairseq.data.audio.audio_utils import convert_waveform
-from examples.speech_to_text.data_utils import extract_fbank_features
+from speech_to_text_utils import extract_fbank_features
 import ast
 import math
 import os

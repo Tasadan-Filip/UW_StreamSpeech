@@ -41,4 +41,12 @@ dev = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+include = [
+	"agent/",
+	"researches/",
+	"asr_bleu/",
+	"asr_bleu_rm_silence/",
+	"demo/",
+	"preprocess_scripts/",
+]
 # extraPaths = ["fairseq/fairseq", "SimulEval/simuleval"]
