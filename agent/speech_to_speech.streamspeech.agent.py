@@ -409,8 +409,8 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                 chunk_size = 8
             for conv in model.encoder.subsample.conv_layers:
                 conv.chunk_size = chunk_size
-            for layer in model.encoder.conformer_layers:
-                layer.conv_module.depthwise_conv.chunk_size = chunk_size
+            for layer in model.encoder.streaming_speech_encoder_layers:
+                layer.convolution_layer.depthwise_conv.chunk_size = chunk_size
 
         # Set dictionary
         self.dict = {}
