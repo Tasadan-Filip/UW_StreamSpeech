@@ -1,1 +1,3 @@
 *.pyc
+pretrain_models/mHuBERT/
+pretrain_models/unit-based_HiFi-GAN_vocoder/
