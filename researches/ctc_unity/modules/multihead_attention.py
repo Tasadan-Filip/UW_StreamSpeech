@@ -192,7 +192,7 @@ class MultiheadAttention(FairseqIncrementalDecoder):
             k = self.k_proj(query)
             v = self.v_proj(query)
         elif self.encoder_decoder_attention:
-            # encoder-decoder attention
+            # encoder-decoder attention (aka cross-attention)
             q = self.q_proj(query)
             if key is None:
                 assert value is None
@@ -209,7 +209,6 @@ class MultiheadAttention(FairseqIncrementalDecoder):
                         )[:, 0, :]
                 k = self.k_proj(key)
                 v = self.v_proj(key)
-
         else:
             assert key is not None and value is not None
             q = self.q_proj(query)

@@ -168,7 +168,7 @@ class SpeechToUnit2passCTCASRSTMultitaskTaskCriterion(
                 layer.convolution_layer.depthwise_conv.chunk_size = chunk_size
 
         net_output, extra = model(**net_input_concat, streaming_config=streaming_config)
-        loss, nll_loss, rdrop_kl_loss = self.compute_loss(
+        loss, nll_loss, rdrop_kl_loss = self.compute_s2ut_loss(
             model, [net_output, extra], sample, reduce=reduce
         )
 
@@ -199,7 +199,7 @@ class SpeechToUnit2passCTCASRSTMultitaskTaskCriterion(
 
         return loss, sample_size, logging_output
 
-    def compute_loss(self, model, net_output, sample, reduce=True):
+    def compute_s2ut_loss(self, model, net_output, sample, reduce=True):
         lprobs = model.get_normalized_probs(net_output, log_probs=True).transpose(0, 1)
         target = model.get_targets(sample, net_output)
 
@@ -232,6 +232,7 @@ class SpeechToUnit2passCTCASRSTMultitaskTaskCriterion(
             )
 
         if self.rdrop_alpha > 0:
+            #
             pad_mask = target[: target.size(0) // 2].unsqueeze(-1).eq(self.padding_idx)
             rdrop_kl_loss = compute_kl_loss(model, net_output, pad_mask)
             loss += self.rdrop_alpha * rdrop_kl_loss

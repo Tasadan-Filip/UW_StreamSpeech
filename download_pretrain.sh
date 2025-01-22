@@ -1,8 +1,4 @@
-# Download Pretrained Models
-
-Download unit-based HiFi-GAN vocoder and HuBERT for unit extraction:
-
-```shell
+#!/bin/bash
 ROOT=/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech # change to your local address
 PRETRAIN_ROOT=$ROOT/pretrain_models
 
@@ -24,4 +20,3 @@ wget -P $PRETRAIN_ROOT/unit-based_HiFi-GAN_vocoder/mHuBERT.layer11.km1000.fr htt
 mkdir $PRETRAIN_ROOT/mHuBERT
 wget -P $PRETRAIN_ROOT/mHuBERT https://dl.fbaipublicfiles.com/hubert/mhubert_base_vp_en_es_fr_it3.pt
 wget -P $PRETRAIN_ROOT/mHuBERT https://dl.fbaipublicfiles.com/hubert/mhubert_base_vp_en_es_fr_it3_L11_km1000.bin
-```

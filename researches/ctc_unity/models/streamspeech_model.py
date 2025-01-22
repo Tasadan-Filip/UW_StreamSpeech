@@ -6,6 +6,7 @@
 import copy
 import logging
 from pathlib import Path
+from ctc_unity.modules.ctc_decoder import MyCTCDecoder
 from ctc_unity.modules.simultaneous_text_decoder import SimultaneousTextDecoder
 from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
@@ -491,6 +492,10 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
                     dictionary=tgt_dict,
                     in_dim=in_dim
                 )
+            # task_decoder = MyCTCDecoder(
+            #         dictionary=tgt_dict,
+            #         in_dim=in_dim
+            #     )
         else:
             raise NotImplementedError(
                 "currently only support multitask decoder_type 'transformer', 'ctc'"
