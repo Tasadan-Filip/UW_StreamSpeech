@@ -882,7 +882,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         self.activation_dropout = activation_dropout
 
         # Initialize blocks
-        self.activation_fn = utils.get_activation_fn(activation_fn)
+        self.activation_fn = researches.types.get_activation_fn_uw(activation_fn)
         self.self_attn = MultiheadAttention(
             self.embedding_dim,
             num_attention_heads,

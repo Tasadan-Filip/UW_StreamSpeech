@@ -41,7 +41,7 @@ class SegEncoderLayer(nn.Module):
         self.dropout_module = FairseqDropout(
             args.dropout, module_name=self.__class__.__name__
         )
-        self.activation_fn = utils.get_activation_fn(
+        self.activation_fn = researches.types.get_activation_fn_uw(
             activation=getattr(args, "activation_fn", "relu") or "relu"
         )
         activation_dropout_p = getattr(args, "activation_dropout", 0) or 0

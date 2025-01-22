@@ -4,6 +4,8 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
+from argparse import Namespace
+import dataclasses
 from simuleval.utils import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToSpeechAgent
@@ -11,7 +13,7 @@ from simuleval.agents.actions import WriteAction, ReadAction
 from fairseq.checkpoint_utils import load_model_ensemble_and_task
 from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Literal, Optional, Protocol, Union, final
 from fairseq.data.audio.audio_utils import convert_waveform
 from fairseq.examples.speech_to_text.data_utils import extract_fbank_features
 import ast
@@ -42,8 +44,29 @@ class OnlineFeatureExtractor:
     """
     Extract speech feature on the fly.
     """
+    shift_size: int
+    window_size: int
+    sample_rate: float
+    feature_dim: int
+    global_cmvn: dict[Literal["mean"] | Literal["std"], float] | None
+    device: Literal["cuda"] | Literal["cpu"]
 
-    def __init__(self, args, cfg):
+    num_samples_per_shift: int
+    num_samples_per_window: int
+
+    len_ms_to_samples: Callable[[int | float], float]
+
+    previous_residual_samples: list[Any]
+    
+    class Args(Protocol):
+        shift_size: int
+        window_size: int
+        sample_rate: float
+        feature_dim: int
+        global_cmvn: dict[Literal["mean"] | Literal["std"], float] | None
+        device: Literal["gpu"] | Literal["cpu"]
+
+    def __init__(self, args: Args, cfg):
         self.shift_size = args.shift_size
         self.window_size = args.window_size
         assert self.window_size >= self.shift_size
@@ -100,20 +123,42 @@ class OnlineFeatureExtractor:
 
 
 @entrypoint
+@final
 class StreamSpeechS2STAgent(SpeechToSpeechAgent):
     """
     Incrementally feed text to this offline Fastspeech2 TTS model,
     with a minimum numbers of phonemes every chunk.
     """
+    
+    @dataclasses.dataclass
+    class Args(Namespace):
+        max_len: int
+        force_finish: bool
+        agent_dir: str
+        user_dir: str | None
+        device: Literal["gpu"] | Literal["cpu"]
+        model_path: str
+        data_bin: str
+        config_yaml: str | None
+        multitask_config_yaml: str | None
+        source_segment_size: int
 
-    def __init__(self, args):
+        shift_size: int
+        window_size: int
+        sample_rate: float
+        feature_dim: int
+        global_cmvn: dict[Literal["mean"] | Literal["std"], float] | None
+
+
+    def __init__(self, args: Args):
         super().__init__(args)
         self.eos = DEFAULT_EOS
+
+        self.args = args
 
         self.gpu = self.args.device == "gpu"
         self.device = "cuda" if args.device == "gpu" else "cpu"
 
-        self.args = args
 
         self.load_model_vocab(args)
 
@@ -353,7 +398,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
         else:
             return tensor.cpu()
 
-    def load_model_vocab(self, args):
+    def load_model_vocab(self, args: Args):
         filename = args.model_path
         if not os.path.exists(filename):
             raise IOError("Model file not found: {}".format(filename))

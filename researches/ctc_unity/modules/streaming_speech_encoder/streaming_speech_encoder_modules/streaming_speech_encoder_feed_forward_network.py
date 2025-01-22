@@ -30,7 +30,7 @@ class StreamingSpeechEncoderFeedForwardNetwork(torch.nn.Module):
         self.w_2 = torch.nn.Linear(hidden_units, input_feat, bias=bias)
         self.dropout1 = torch.nn.Dropout(dropout1)
         self.dropout2 = torch.nn.Dropout(dropout2)
-        self.activation = get_activation_fn(activation_fn)(hidden_units)
+        self.activation = researches.types.get_activation_fn_uw(activation_fn)(hidden_units)
 
     def forward(self, x):
         """

@@ -5,6 +5,7 @@
 
 import logging
 import math
+from typing import Literal, Protocol
 
 import torch
 from fairseq import utils
@@ -26,8 +27,33 @@ logger = logging.getLogger(__name__)
 
 class UniS2TConformerEncoder(FairseqEncoder):
     """Conformer Encoder for speech translation based on https://arxiv.org/abs/2005.08100"""
+    class Args(Protocol):
+        encoder_freezing_updates: int
+        encoder_embed_dim: int
+        no_scale_embedding: bool
+        conv_version: str
 
-    def __init__(self, args):
+        input_feat_per_channel: int
+        input_channels: int
+        conv_channels: int
+
+        conv_kernel_sizes: str
+        conv_out_channels: int
+
+        pos_enc_type: Literal["rel_pos"] | Literal["rope"] | Literal["abs"]
+        max_source_positions: int
+        dropout: float
+        encoder_ffn_embed_dim
+        encoder_attention_heads
+        dropout
+        depthwise_conv_kernel_size
+        attn_type
+        fp16
+        encoder_layers
+        uni_encoder
+
+
+    def __init__(self, args: Args):
         super().__init__(None)
 
         self.encoder_freezing_updates = args.encoder_freezing_updates

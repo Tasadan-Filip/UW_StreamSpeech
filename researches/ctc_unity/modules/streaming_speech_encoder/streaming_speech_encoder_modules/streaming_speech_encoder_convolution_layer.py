@@ -52,7 +52,7 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
                 chunk_size=chunk_size,
             )
         self.batch_norm = torch.nn.BatchNorm1d(channels)
-        self.activation = get_activation_fn(activation_fn)(channels)
+        self.activation = researches.types.get_activation_fn_uw(activation_fn)(channels)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             embed_dim,

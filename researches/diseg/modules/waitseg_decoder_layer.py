@@ -52,7 +52,7 @@ class WaitSegDecoderLayer(nn.Module):
             add_zero_attn=add_zero_attn,
         )
 
-        self.activation_fn = utils.get_activation_fn(
+        self.activation_fn = researches.types.get_activation_fn_uw(
             activation=(
                 str(args.activation_fn)
                 if getattr(args, "activation_fn", None) is not None

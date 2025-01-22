@@ -7,6 +7,7 @@
 """Multi-Head Attention layer definition."""
 
 import math
+from typing import Literal
 
 import torch
 from torch import nn
@@ -24,7 +25,7 @@ class ESPNETMultiHeadedAttention(nn.Module):
         dropout: Dropout rate.
     """
 
-    def __init__(self, n_feat, n_head, dropout):
+    def __init__(self, n_feat: int, n_head: int, dropout: float):
         """Construct an MultiHeadedAttention object."""
         super(ESPNETMultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
@@ -117,7 +118,7 @@ class RelPositionMultiHeadedAttention(ESPNETMultiHeadedAttention):
         zero_triu: Whether to zero the upper triangular part of attention matrix.
     """
 
-    def __init__(self, n_feat, n_head, dropout, zero_triu=False):
+    def __init__(self, n_feat: int, n_head: int, dropout: float, zero_triu=False):
         """Construct an RelPositionMultiHeadedAttention object."""
         super().__init__(n_feat, n_head, dropout)
         self.zero_triu = zero_triu
@@ -212,10 +213,10 @@ class RelPositionMultiHeadedAttention(ESPNETMultiHeadedAttention):
 class RotaryPositionMultiHeadedAttention(ESPNETMultiHeadedAttention):
     def __init__(
         self,
-        n_feat,
-        n_head,
-        dropout,
-        precision,
+        n_feat: int,
+        n_head: int,
+        dropout: float,
+        precision: Literal["fp16"] | torch.dtype,
         rotary_emd_base=10000,
     ):
         """Construct an RotaryPositionMultiHeadedAttention object."""

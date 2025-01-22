@@ -44,7 +44,7 @@ class TransformerEncoderLayerBase(nn.Module):
         self.dropout_module = FairseqDropout(
             cfg.dropout, module_name=self.__class__.__name__
         )
-        self.activation_fn = utils.get_activation_fn(activation=cfg.activation_fn)
+        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout
@@ -291,7 +291,7 @@ class TransformerDecoderLayerBase(nn.Module):
             else None
         )
 
-        self.activation_fn = utils.get_activation_fn(activation=cfg.activation_fn)
+        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout

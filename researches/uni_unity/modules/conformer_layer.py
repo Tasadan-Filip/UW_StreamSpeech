@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Optional
+from typing import Literal, Optional, final
 
 import torch
 
@@ -28,7 +28,7 @@ class ConvolutionModule(torch.nn.Module):
         channels,
         depthwise_kernel_size,
         dropout,
-        activation_fn="swish",
+        activation_fn: Literal["relu", "relu_squared", "gelu", "gelu_fast", "gelu_accurate", "tanh", "linear", "swish"] = "swish",
         bias=False,
         export=False,
     ):
@@ -82,7 +82,7 @@ class ConvolutionModule(torch.nn.Module):
         # self.depthwise_conv.weight[:,:,self.depthwise_conv.weight.size(-1)//2+1:].requires_grad_(False)
 
         self.batch_norm = torch.nn.BatchNorm1d(channels)
-        self.activation = get_activation_fn(activation_fn)(channels)
+        self.activation = researches.types.get_activation_fn_uw(activation_fn)(channels)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             embed_dim,
@@ -124,10 +124,10 @@ class FeedForwardModule(torch.nn.Module):
 
     def __init__(
         self,
-        input_feat,
-        hidden_units,
-        dropout1,
-        dropout2,
+        input_feat: int,
+        hidden_units: int,
+        dropout1: float,
+        dropout2: float,
         activation_fn="swish",
         bias=True,
     ):
@@ -147,7 +147,7 @@ class FeedForwardModule(torch.nn.Module):
         self.w_2 = torch.nn.Linear(hidden_units, input_feat, bias=bias)
         self.dropout1 = torch.nn.Dropout(dropout1)
         self.dropout2 = torch.nn.Dropout(dropout2)
-        self.activation = get_activation_fn(activation_fn)(hidden_units)
+        self.activation = researches.types.get_activation_fn_uw(activation_fn)(hidden_units)
 
     def forward(self, x):
         """
@@ -164,19 +164,20 @@ class FeedForwardModule(torch.nn.Module):
         return self.dropout2(x)
 
 
+@final
 class UniConformerEncoderLayer(torch.nn.Module):
     """Conformer block based on https://arxiv.org/abs/2005.08100. We currently don't support relative positional encoding in MHA"""
 
     def __init__(
         self,
-        embed_dim,
-        ffn_embed_dim,
-        attention_heads,
-        dropout,
+        embed_dim: int,
+        ffn_embed_dim: int,
+        attention_heads: int,
+        dropout: float,
         use_fp16,
-        depthwise_conv_kernel_size=31,
-        activation_fn="swish",
-        attn_type=None,
+        depthwise_conv_kernel_size: int = 31,
+        activation_fn: str ="swish",
+        attn_type: Literal["espnet"] | None =None,
         pos_enc_type="abs",
     ):
         """
