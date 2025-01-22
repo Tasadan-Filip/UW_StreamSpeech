@@ -1,7 +1,7 @@
 import os
 import argparse
 import pandas as pd
-from examples.speech_to_text.data_utils import load_df_from_tsv, save_df_to_tsv
+from fairseq.examples.speech_to_text.data_utils import load_df_from_tsv, save_df_to_tsv
 
 
 def main():

@@ -172,15 +172,13 @@ class SequenceGenerator(SequenceGeneratorBase):
         constraints: Optional[Tensor] = None,
         bos_token: Optional[int] = None,
         aux_task_name="",
-        encoder_outs_aug: Optional[
-            Tensor
-        ] = None,  # an additional/augmented encoder_outs
+        encoder_outs_aug: List[Dict[str, List[Tensor]]] | None = None,  # an additional/augmented encoder_outs
         max_new_tokens=-1,
         **kwargs,
     ):
         if self.use_incremental_states:
             if self.incremental_states is None:
-                incremental_states = torch.jit.annotate(
+                incremental_states: List[Dict[str, Dict[str, Optional[Tensor]]]] | None = torch.jit.annotate(
                     List[Dict[str, Dict[str, Optional[Tensor]]]],
                     [
                         torch.jit.annotate(Dict[str, Dict[str, Optional[Tensor]]], {})
@@ -304,11 +302,7 @@ class SequenceGenerator(SequenceGeneratorBase):
         reorder_state: Optional[Tensor] = None
         batch_idxs: Optional[Tensor] = None
 
-        original_batch_idxs: Optional[Tensor] = None
-        if "id" in sample and isinstance(sample["id"], Tensor):
-            original_batch_idxs = sample["id"]
-        else:
-            original_batch_idxs = torch.arange(0, bsz).type_as(tokens)
+        original_batch_idxs: torch.Tensor = sample["id"] if "id" in sample and isinstance(sample["id"], Tensor) else torch.arange(0, bsz).type_as(tokens)
 
         for step in range(start, max_len + 1):  # one extra step for EOS marker
             # reorder decoder internal states based on the prev choice of beams

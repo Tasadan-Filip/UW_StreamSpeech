@@ -4,7 +4,7 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
-from simuleval.utils import entrypoint
+from simuleval import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToSpeechAgent
 from simuleval.agents.actions import WriteAction, ReadAction
@@ -13,7 +13,7 @@ from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from fairseq.data.audio.audio_utils import convert_waveform
-from examples.speech_to_text.data_utils import extract_fbank_features
+from agent.speech_to_text_utils import extract_fbank_features
 import ast
 import math
 import os
@@ -188,7 +188,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
         with open(args.vocoder_cfg) as f:
             vocoder_cfg = json.load(f)
-        self.vocoder = CodeHiFiGANVocoderWithDur(args.vocoder, vocoder_cfg)
+        self.vocoder = CodeHiFiGANVocoderWithDur(args.vocoder, vocoder_cfg)  # pyright: ignore[reportCallIssue]
         if self.device == "cuda":
             self.vocoder = self.vocoder.cuda()
         self.dur_prediction = args.dur_prediction
@@ -442,14 +442,19 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             {"src_tokens": src_indices, "src_lengths": src_lengths}
         )
 
+        if self.encoder_outs is None:
+            raise Exception(f"{self.encoder_outs=} but should be a list of values")
+
         finalized_asr = self.asr_ctc_generator.generate(
             self.encoder_outs[0], aux_task_name="source_unigram"
         )
         asr_probs = torch.exp(finalized_asr[0][0]["lprobs"])
+        
+        src_ctc_indices: torch.Tensor = finalized_asr[0][0]["tokens"].int()
 
         for i, hypo in enumerate(finalized_asr):
             i_beam = 0
-            tmp = hypo[i_beam]["tokens"].int()
+            tmp: torch.Tensor = hypo[i_beam]["tokens"].int()
             src_ctc_indices = tmp
             src_ctc_index = hypo[i_beam]["index"]
             text = "".join([self.dict["source_unigram"][c] for c in tmp])
@@ -474,6 +479,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
         )
         st_probs = torch.exp(finalized_st[0][0]["lprobs"])
 
+        tgt_ctc_indices = finalized_st[0][0]["tokens"].int()
         for i, hypo in enumerate(finalized_st):
             i_beam = 0
             tmp = hypo[i_beam]["tokens"].int()
@@ -635,7 +641,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                         ),
                         sample_rate=SAMPLE_RATE,
                         finished=True,
-                    ),
+                    ).content,
                     finished=True,
                 )
         self.tgt_subwords_indices = tgt_subwords_indices

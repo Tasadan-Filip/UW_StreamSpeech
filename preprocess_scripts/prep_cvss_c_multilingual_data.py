@@ -28,13 +28,13 @@ sys.path.insert(0, parent_dir_path)
 import numpy as np
 
 from fairseq.data.audio.audio_utils import convert_waveform
-from examples.speech_synthesis.data_utils import extract_logmel_spectrogram
-from examples.speech_to_speech.preprocessing.data_utils import (
+from fairseq.examples.speech_synthesis.data_utils import extract_logmel_spectrogram
+from fairseq.examples.speech_to_speech.preprocessing.data_utils import (
     gen_config_yaml,
     load_units,
     process_units,
 )
-from examples.speech_to_text.data_utils import (
+from fairseq.examples.speech_to_text.data_utils import (
     create_zip,
     extract_fbank_features,
     get_zip_manifest,

@@ -17,8 +17,8 @@ from fairseq.models import (
     register_model,
     register_model_architecture,
 )
-from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
-from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
+from fairseq.models.speech_to_speech.modules import CTCDecoder
+from fairseq.models.speech_to_speech.modules import StackedEmbedding
 from ctc_unity.modules.text_to_unit_encoder.text_to_unit_encoder import (
     TextToUnitEncoder
 )

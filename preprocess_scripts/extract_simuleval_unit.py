@@ -5,7 +5,7 @@ import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
 sys.path.insert(0, parent_dir_path)
-from examples.speech_to_text.data_utils import load_df_from_tsv
+from fairseq.examples.speech_to_text.data_utils import load_df_from_tsv
 
 
 def main():

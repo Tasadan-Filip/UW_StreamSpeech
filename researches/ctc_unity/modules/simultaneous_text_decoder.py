@@ -35,6 +35,7 @@ class SimultaneousTextDecoder(TransformerDecoderBase):
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
         streaming_config=None,
+        **kwargs,
     ):
         """
         Args:

@@ -4,7 +4,7 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
-from simuleval.utils import entrypoint
+from simuleval import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToSpeechAgent
 from simuleval.agents.actions import WriteAction, ReadAction
@@ -13,7 +13,7 @@ from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from fairseq.data.audio.audio_utils import convert_waveform
-from speech_to_text_utils import extract_fbank_features
+from fairseq.examples.speech_to_text.data_utils import extract_fbank_features
 import ast
 import math
 import os
@@ -82,6 +82,7 @@ class OnlineFeatureExtractor:
         waveform, sample_rate = convert_waveform(
             torch.tensor([samples]), sr, to_mono=True, to_sample_rate=16000
         )
+        assert isinstance(waveform, torch.FloatTensor)
         output = extract_fbank_features(waveform, 16000)
         output = self.transform(output)
         return torch.tensor(output, device=self.device)
@@ -181,7 +182,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
         with open(args.vocoder_cfg) as f:
             vocoder_cfg = json.load(f)
-        self.vocoder = CodeHiFiGANVocoderWithDur(args.vocoder, vocoder_cfg)
+        self.vocoder = CodeHiFiGANVocoderWithDur(args.vocoder, vocoder_cfg)  # pyright: ignore[reportCallIssue]
         if self.device == "cuda":
             self.vocoder = self.vocoder.cuda()
         self.dur_prediction = args.dur_prediction
@@ -373,7 +374,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             if "global_cmvn" in config:
                 args.global_cmvn = np.load(config["global_cmvn"]["stats_npz_path"])
 
-        self.feature_extractor = OnlineFeatureExtractor(args, config)
+        self.feature_extractor = OnlineFeatureExtractor(args, config)  # pyright: ignore[reportPossiblyUnboundVariable]
 
         if args.multitask_config_yaml is not None:
             task_args.multitask_config_yaml = args.multitask_config_yaml
@@ -434,11 +435,14 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             {"src_tokens": src_indices, "src_lengths": src_lengths}
         )
 
+        assert self.encoder_outs is not None
+
         finalized_asr = self.asr_ctc_generator.generate(
             self.encoder_outs[0], aux_task_name="source_unigram"
         )
         asr_probs = torch.exp(finalized_asr[0][0]["lprobs"])
 
+        src_ctc_indices = finalized_asr[0][0]["tokens"].int()
         for i, hypo in enumerate(finalized_asr):
             i_beam = 0
             tmp = hypo[i_beam]["tokens"].int()
@@ -462,6 +466,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             self.encoder_outs[0], aux_task_name="ctc_target_unigram"
         )
         st_probs = torch.exp(finalized_st[0][0]["lprobs"])
+        tgt_ctc_indices = finalized_st[0][0]["tokens"].int()
 
         for i, hypo in enumerate(finalized_st):
             i_beam = 0
@@ -621,7 +626,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                         ),
                         sample_rate=SAMPLE_RATE,
                         finished=True,
-                    ),
+                    ).content,
                     finished=True,
                 )
         self.tgt_subwords_indices = tgt_subwords_indices
@@ -677,12 +682,11 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                 "src_tokens": [],
                 "src_lengths": [],
             }
+        
+        assert not getattr(single_model, "t2u_augmented_cross_attn", False)
 
-        if getattr(single_model, "t2u_augmented_cross_attn", False):
-            encoder_outs_aug = [t2u_encoder_out]
-        else:
-            encoder_outs = [t2u_encoder_out]
-            encoder_outs_aug = None
+        encoder_outs = [t2u_encoder_out]
+        encoder_outs_aug = None
         finalized = self.ctc_generator.generate(
             encoder_outs[0],
             prefix=self.tgt_units_indices,
@@ -701,10 +705,22 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                         ),
                         sample_rate=SAMPLE_RATE,
                         finished=True,
-                    ),
+                    ).content,
                     finished=True,
                 )
 
+        tmp = finalized[0][0]["tokens"].int()  # hyp + eos
+        if tmp[-1] == self.generator.eos:
+            tmp = tmp[:-1]
+        unit = []
+        for c in tmp:
+            u = self.generator.tgt_dict[c].replace("<s>", "").replace("</s>", "")
+            if u != "":
+                unit.append(int(u))
+
+        if len(unit) > 0 and unit[0] == " ":
+            unit = unit[1:]
+        
         for i, hypo in enumerate(finalized):
             i_beam = 0
             tmp = hypo[i_beam]["tokens"].int()  # hyp + eos
@@ -736,7 +752,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                         ),
                         sample_rate=SAMPLE_RATE,
                         finished=True,
-                    ),
+                    ).content,
                     finished=True,
                 )
 
@@ -765,6 +781,6 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                 content=new_wav.tolist(),
                 sample_rate=SAMPLE_RATE,
                 finished=self.states.source_finished,
-            ),
+            ).content,
             finished=self.states.target_finished,
         )

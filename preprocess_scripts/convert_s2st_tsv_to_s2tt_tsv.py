@@ -19,7 +19,7 @@ from tempfile import NamedTemporaryFile
 import sys
 import os
 import re
-from examples.speech_to_text.data_utils import (
+from fairseq.examples.speech_to_text.data_utils import (
     load_df_from_tsv,
     save_df_to_tsv,
     gen_vocab,
@@ -27,7 +27,7 @@ from examples.speech_to_text.data_utils import (
 
 
 from pathlib import Path
-from examples.speech_to_text.data_utils import (
+from fairseq.examples.speech_to_text.data_utils import (
     load_df_from_tsv,
     save_df_to_tsv,
     gen_config_yaml,

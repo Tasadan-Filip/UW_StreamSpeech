@@ -22,7 +22,7 @@ from fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
 from fairseq.models import BaseFairseqModel, register_model
 from agent.tts.codehifigan import CodeGenerator as CodeHiFiGANModel
 from fairseq.models.text_to_speech.hifigan import Generator as HiFiGANModel
-from fairseq.models.text_to_speech.hub_interface import VocoderHubInterface
+from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 
 logger = logging.getLogger(__name__)
 
@@ -104,5 +104,5 @@ class CodeHiFiGANVocoderWithDur(BaseFairseqModel):
             vocoder_cfg = json.load(f)
         assert len(x["args"]["model_path"]) == 1, "Too many vocoder models in the input"
 
-        vocoder = CodeHiFiGANVocoderWithDur(x["args"]["model_path"][0], vocoder_cfg)
-        return VocoderHubInterface(vocoder_cfg, vocoder)
+        vocoder = CodeHiFiGANVocoderWithDur(x["args"]["model_path"][0], vocoder_cfg)  # pyright: ignore[reportCallIssue]
+        return hub_utils.GeneratorHubInterface(vocoder_cfg, x["task"], vocoder)

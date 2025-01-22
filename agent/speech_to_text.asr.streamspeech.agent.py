@@ -4,7 +4,7 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
-from simuleval.utils import entrypoint
+from simuleval import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToTextAgent
 from simuleval.agents.actions import WriteAction, ReadAction
@@ -13,7 +13,7 @@ from fairseq.models.text_to_speech.hub_interface import TTSHubInterface
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from fairseq.data.audio.audio_utils import convert_waveform
-from examples.speech_to_text.data_utils import extract_fbank_features
+from fairseq.examples.speech_to_text.data_utils import extract_fbank_features
 import ast
 import math
 import os
@@ -27,7 +27,7 @@ from fairseq.file_io import PathManager
 from fairseq import search
 from fairseq.data.audio.feature_transforms import CompositeAudioFeatureTransform
 
-from examples.speech_to_speech.asr_bleu.utils import retrieve_asr_config, ASRGenerator
+from fairseq.examples.speech_to_speech.asr_bleu.utils import retrieve_asr_config, ASRGenerator
 
 
 SHIFT_SIZE = 10

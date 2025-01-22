@@ -69,7 +69,7 @@ class MultiDecoderSequenceGenerator(nn.Module):
         """
         super().__init__()
 
-        from examples.speech_to_speech.unity.sequence_generator import SequenceGenerator
+        from fairseq.sequence_generator import SequenceGenerator
 
         self.generator = SequenceGenerator(
             models,

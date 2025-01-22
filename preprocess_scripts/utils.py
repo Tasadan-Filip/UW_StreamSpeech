@@ -4,24 +4,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import List, Tuple
-import csv
-import errno
 import hashlib
 import logging
 import os
-import sys
 import tarfile
-import threading
 import zipfile
-from _io import TextIOWrapper
-from queue import Queue
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, Optional
 
-import torch
 import urllib
 import urllib.request
-from torch.utils.data import Dataset
-from torch.utils.model_zoo import tqdm
 
 
 def get_audio_files(manifest_path: str) -> Tuple[str, List[str], List[int]]:
@@ -156,7 +147,7 @@ def extract_archive(
         with tarfile.open(from_path, "r") as tar:
             logging.info("Opened tar file {}.".format(from_path))
             files = []
-            for file_ in tar:  # type: Any
+            for file_ in tar:
                 file_path = os.path.join(to_path, file_.name)
                 if file_.isfile():
                     files.append(file_path)

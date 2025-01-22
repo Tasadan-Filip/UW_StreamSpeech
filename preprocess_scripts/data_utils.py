@@ -6,7 +6,7 @@
 from pathlib import Path
 from typing import List, Optional
 
-from examples.speech_to_text.data_utils import S2TDataConfigWriter
+from fairseq.examples.speech_to_text.data_utils import S2TDataConfigWriter
 
 
 def gen_config_yaml(

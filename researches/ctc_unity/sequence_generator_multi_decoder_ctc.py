@@ -69,7 +69,7 @@ class CTCMultiDecoderSequenceGenerator(nn.Module):
         """
         super().__init__()
 
-        from examples.speech_to_speech.unity.sequence_generator import SequenceGenerator
+        from fairseq.examples.speech_to_speech.unity.sequence_generator import SequenceGenerator
 
         from ctc_unity.ctc_generator import CTCSequenceGenerator
         from ctc_unity.ctc_decoder import CTCDecoder
