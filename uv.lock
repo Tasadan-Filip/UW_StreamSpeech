@@ -359,8 +359,8 @@ wheels = [
 
 [[package]]
 name = "fairseq"
-version = "0.12.2"
-source = { registry = "https://pypi.org/simple" }
+version = "0.12.3"
+source = { url = "https://github.com/facebookresearch/fairseq/archive/refs/tags/v0.12.3.tar.gz" }
 dependencies = [
     { name = "bitarray" },
     { name = "cffi" },
@@ -374,7 +374,27 @@ dependencies = [
     { name = "torchaudio" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/36/db42846570f479ac859be3b48d8b47f2ae9b0b9c77487a512f2f2ecbcb6b/fairseq-0.12.2.tar.gz", hash = "sha256:34f1b18426bf3844714534162f065ab733e049597476daa35fffb4d06a92b524", size = 9595935 }
+sdist = { hash = "sha256:f9e97dc0ff6a9f5c4f29fcf297c2fa4d16a2ca7f6dbd180286855e31e1cb3183" }
+
+[package.metadata]
+requires-dist = [
+    { name = "bitarray" },
+    { name = "black", marker = "extra == 'dev'", specifier = "==22.3.0" },
+    { name = "cffi" },
+    { name = "cython" },
+    { name = "flake8", marker = "extra == 'dev'" },
+    { name = "hydra-core", specifier = ">=1.0.7,<1.1" },
+    { name = "numpy", specifier = ">=1.21.3" },
+    { name = "omegaconf", specifier = "<2.1" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "regex" },
+    { name = "sacrebleu", specifier = ">=1.4.12" },
+    { name = "sphinx", marker = "extra == 'docs'" },
+    { name = "sphinx-argparse", marker = "extra == 'docs'" },
+    { name = "torch", specifier = ">=1.10" },
+    { name = "torchaudio", specifier = ">=0.8.0" },
+    { name = "tqdm" },
+]
 
 [[package]]
 name = "ffmpeg"
@@ -1749,7 +1769,7 @@ dev = [
 requires-dist = [
     { name = "cython", specifier = "==3.0.10" },
     { name = "editdistance" },
-    { name = "fairseq", specifier = "==0.12.2" },
+    { name = "fairseq", url = "https://github.com/facebookresearch/fairseq/archive/refs/tags/v0.12.3.tar.gz" },
     { name = "ffmpeg", specifier = ">=1.4" },
     { name = "numpy", specifier = ">=1.26,<2.0" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
