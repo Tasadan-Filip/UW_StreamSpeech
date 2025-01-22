@@ -4,7 +4,7 @@
 # StreamSpeech: Simultaneous Speech-to-Speech Translation with Multi-task Learning (ACL 2024)
 ##########################################
 
-from simuleval import entrypoint
+from simuleval.utils import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToSpeechAgent
 from simuleval.agents.actions import WriteAction, ReadAction

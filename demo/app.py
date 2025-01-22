@@ -14,7 +14,7 @@ import math
 import numpy as np
 import shutil
 
-from simuleval import entrypoint
+from simuleval.utils import entrypoint
 from simuleval.data.segments import SpeechSegment
 from simuleval.agents import SpeechToSpeechAgent
 from simuleval.agents.actions import WriteAction, ReadAction
