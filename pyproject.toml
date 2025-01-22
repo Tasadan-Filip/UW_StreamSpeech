@@ -15,6 +15,7 @@ dependencies = [
     "fairseq",
     "simuleval",
     "editdistance",
+    "sentencepiece>=0.2.0",
 ]
 
 [tool.uv]
