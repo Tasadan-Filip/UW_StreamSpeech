@@ -15,7 +15,7 @@ from fairseq.data.audio.speech_to_text_dataset import (
     SpeechToTextDataset,
 )
 from fairseq.tasks import LegacyFairseqTask, register_task
-from fairseq.tasks.speech_to_text import DummyMultiTask
+from fairseq.tasks.speech_to_speech import DummyMultiTask
 
 logger = logging.getLogger(__name__)
 
