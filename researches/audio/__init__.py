@@ -1,8 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 import importlib
 import os
 import numpy as np
+
+from fairseq.data.audio.speech_to_text_dataset import (
+    S2TDataConfig,
+    SpeechToTextDataset,
+    SpeechToTextDatasetItem,
+)
+import torch
 
 
 class AudioTransform(ABC):
@@ -132,3 +139,52 @@ class CompositeAudioWaveformTransform(CompositeAudioTransform):
         for t in self.transforms:
             x, sample_rate = t(x, sample_rate)
         return x, sample_rate
+    
+class SpeechToTextMultitaskDataset(SpeechToTextDataset):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.multitask_data = {}
+
+    def add_multitask_dataset(self, task_name, task_data):
+        self.multitask_data[task_name] = task_data
+
+    def __getitem__(
+        self, index: int
+    ) -> Tuple[SpeechToTextDatasetItem, Dict[str, torch.Tensor]]:
+        s2t_data = super().__getitem__(index)
+
+        multitask_target = {}
+        sample_id = self.ids[index]
+        tgt_lang = self.tgt_langs[index]
+        for task_name, task_dataset in self.multitask_data.items():
+            multitask_target[task_name] = task_dataset.get(sample_id, tgt_lang)
+
+        return s2t_data, multitask_target
+
+    def collater(
+        self, samples: List[Tuple[SpeechToTextDatasetItem, Dict[str, torch.Tensor]]]
+    ) -> Dict:
+        if len(samples) == 0:
+            return {}
+
+        out = super().collater([s for s, _ in samples], return_order=True)
+        order = out["order"]
+        del out["order"]
+
+        for task_name, task_dataset in self.multitask_data.items():
+            if "multitask" not in out:
+                out["multitask"] = {}
+            d = [s[task_name] for _, s in samples]
+            task_target = task_dataset.collater(d)
+            out["multitask"][task_name] = {
+                "target": task_target["target"].index_select(0, order),
+                "target_lengths": task_target["target_lengths"].index_select(0, order),
+                "ntokens": task_target["ntokens"],
+            }
+            out["multitask"][task_name]["net_input"] = {
+                "prev_output_tokens": task_target["prev_output_tokens"].index_select(
+                    0, order
+                ),
+            }
+
+        return out
