@@ -3,7 +3,7 @@
 Download unit-based HiFi-GAN vocoder and HuBERT for unit extraction:
 
 ```shell
-ROOT=/gscratch/intelligentsystems/translation_groups/filip/UW_StreamSpeech # change to your local address
+ROOT=/gscratch/intelligentsystems/translation_groups/$USER/UW_StreamSpeech # change to your local address
 PRETRAIN_ROOT=$ROOT/pretrain_models
 
 # unit-based_HiFi-GAN_vocoder
