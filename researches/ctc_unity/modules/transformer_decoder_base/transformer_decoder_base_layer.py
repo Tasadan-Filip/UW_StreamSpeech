@@ -2,15 +2,16 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, final
 from ctc_unity.modules.multihead_attention import MultiheadAttention
 from fairseq import utils
 from fairseq.modules.quant_noise import quant_noise
-from fairseq.modules import (
-    FairseqDropout,
-    LayerNorm
-)
+from fairseq.modules import FairseqDropout, LayerNorm
 
+from researches.types import get_activation_fn_uw
+
+
+@final
 class TransformerDecoderBaseLayer(nn.Module):
     """Decoder layer block.
 
@@ -61,7 +62,7 @@ class TransformerDecoderBaseLayer(nn.Module):
             else None
         )
 
-        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
+        self.activation_fn = get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout
@@ -75,7 +76,7 @@ class TransformerDecoderBaseLayer(nn.Module):
 
         self.encoder_attn = self._build_encoder_attention(self.embed_dim, cfg)
         self.encoder_attn_layer_norm = LayerNorm(self.embed_dim, export=cfg.export)
-            
+
         self.ffn_layernorm = (
             LayerNorm(cfg.decoder.ffn_embed_dim)
             if utils.safe_getattr(cfg, "scale_fc", False)
@@ -218,7 +219,9 @@ class TransformerDecoderBaseLayer(nn.Module):
                 incremental_state is not None
                 and self.encoder_attn._get_input_buffer(incremental_state) != {}
             ):
-                prev_key_length=self.encoder_attn._get_input_buffer(incremental_state)['prev_key'].size(-2)
+                prev_key_length = self.encoder_attn._get_input_buffer(
+                    incremental_state
+                )["prev_key"].size(-2)
 
                 if encoder_out.size(0) > prev_key_length:
                     encoder_out = encoder_out[prev_key_length:]

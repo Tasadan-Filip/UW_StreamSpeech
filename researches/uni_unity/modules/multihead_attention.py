@@ -68,8 +68,8 @@ class MultiheadAttention(FairseqIncrementalDecoder):
 
     def __init__(
         self,
-        embed_dim,
-        num_heads,
+        embed_dim: int,
+        num_heads: int,
         kdim=None,
         vdim=None,
         dropout=0.0,
@@ -108,16 +108,16 @@ class MultiheadAttention(FairseqIncrementalDecoder):
         )
 
         self.head_dim = embed_dim // num_heads
-        assert (
-            self.head_dim * num_heads == self.embed_dim
-        ), "embed_dim must be divisible by num_heads"
+        assert self.head_dim * num_heads == self.embed_dim, (
+            "embed_dim must be divisible by num_heads"
+        )
         self.scaling = self.head_dim**-0.5
 
         self.self_attention = self_attention
         self.encoder_decoder_attention = encoder_decoder_attention
 
         assert not self.self_attention or self.qkv_same_dim, (
-            "Self-attention requires query, key and " "value to be of the same size"
+            "Self-attention requires query, key and value to be of the same size"
         )
 
         self.k_proj = quant_noise(
@@ -347,7 +347,6 @@ class MultiheadAttention(FairseqIncrementalDecoder):
         need_weights: bool = True,
         attn_mask: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Optional[Tensor]]:
-
         tgt_len, bsz, embed_dim = query.size()
 
         if key_padding_mask is not None:
@@ -475,9 +474,9 @@ class MultiheadAttention(FairseqIncrementalDecoder):
         tgt_len, bsz, embed_dim = query.size()
         src_len = tgt_len
         if not self.skip_embed_dim_check:
-            assert (
-                embed_dim == self.embed_dim
-            ), f"query dim {embed_dim} != {self.embed_dim}"
+            assert embed_dim == self.embed_dim, (
+                f"query dim {embed_dim} != {self.embed_dim}"
+            )
         assert list(query.size()) == [tgt_len, bsz, embed_dim]
         if key is not None:
             src_len, key_bsz, _ = key.size()

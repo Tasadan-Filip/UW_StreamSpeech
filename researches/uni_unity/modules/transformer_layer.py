@@ -3,15 +3,19 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Protocol
+from typing_extensions import override
+from uu import decode
 
+from fairseq.modules.layer_norm import FusedLayerNorm
 import torch
 import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, dropout
 
 from fairseq import utils
 from fairseq.models.transformer import TransformerConfig
 from fairseq.modules import LayerNorm
+from researches.types import ActivationFnName, get_activation_fn_uw
 from uni_unity.modules.multihead_attention import MultiheadAttention
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.quant_noise import quant_noise
@@ -44,7 +48,7 @@ class TransformerEncoderLayerBase(nn.Module):
         self.dropout_module = FairseqDropout(
             cfg.dropout, module_name=self.__class__.__name__
         )
-        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
+        self.activation_fn = get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout
@@ -235,9 +239,10 @@ class TransformerEncoderLayer(TransformerEncoderLayerBase):
         super().__init__(TransformerConfig.from_namespace(args))
         self.args = args
 
-    def build_self_attention(self, embed_dim, args):
+    @override
+    def build_self_attention(self, embed_dim: int, cfg):
         return super().build_self_attention(
-            embed_dim, TransformerConfig.from_namespace(args)
+            embed_dim, TransformerConfig.from_namespace(cfg)
         )
 
 
@@ -258,8 +263,77 @@ class TransformerDecoderLayerBase(nn.Module):
             (default: False).
     """
 
+    class Cfg(Protocol):
+        class Decoder(Protocol):
+            embed_dim: int
+            ffn_embed_dim: int
+            attention_heads: int
+            normalize_before: bool
+            xformers_att_config: str | None
+
+        class Encoder(Protocol):
+            embed_dim: int
+            xformers_att_config: str | None
+
+        class QuantNoise(Protocol):
+            pq: float
+            pq_block_size: int
+
+        decoder: Decoder
+        encoder: Encoder
+
+        dropout: float
+        attention_dropout: float
+        cross_self_attention: bool
+
+        quant_noise: QuantNoise
+
+        activation_dropout: float
+        activation_fn: ActivationFnName
+
+        relu_dropout: float | int | None
+        export: bool
+
+    embed_dim: int
+    dropout_module: FairseqDropout
+    quant_noise: float
+    quant_noise_block_size: int
+
+    cross_self_attention: bool
+
+    self_attn: MultiheadAttention
+    attn_ln: FusedLayerNorm | torch.nn.LayerNorm | None
+    nh: int
+    head_dim: int
+    scale_heads: bool = False
+    c_attn: nn.Parameter | None
+
+    activation_fn: Callable[[Tensor | int | float], Tensor]
+    activation_dropout_module: FairseqDropout
+    normalize_before: bool
+
+    self_attn_layer_norm: FusedLayerNorm | torch.nn.LayerNorm
+
+    encoder_attn: MultiheadAttention | None
+    encoder_attn_layer_norm: FusedLayerNorm | torch.nn.LayerNorm | None
+
+    ffn_layernorm: FusedLayerNorm | torch.nn.LayerNorm | None
+    w_resid: nn.Parameter | None
+
+    fc1: nn.Linear | nn.Embedding | nn.Conv2d
+    fc2: nn.Linear | nn.Embedding | nn.Conv2d
+
+    final_layer_norm: FusedLayerNorm | torch.nn.LayerNorm
+    need_attn: bool
+
+    onnx_trace: bool
+
     def __init__(
-        self, cfg, no_encoder_attn=False, add_bias_kv=False, add_zero_attn=False
+        self,
+        cfg: Cfg,
+        no_encoder_attn=False,
+        add_bias_kv=False,
+        add_zero_attn=False,
     ):
         super().__init__()
         self.embed_dim = cfg.decoder.embed_dim
@@ -291,7 +365,7 @@ class TransformerDecoderLayerBase(nn.Module):
             else None
         )
 
-        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
+        self.activation_fn = get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout
@@ -344,14 +418,30 @@ class TransformerDecoderLayerBase(nn.Module):
 
         self.onnx_trace = False
 
-    def build_fc1(self, input_dim, output_dim, q_noise, qn_block_size):
+    def build_fc1(
+        self,
+        input_dim: int,
+        output_dim: int,
+        q_noise: float,
+        qn_block_size: int,
+    ) -> nn.Linear | nn.Embedding | nn.Conv2d:
         return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
 
-    def build_fc2(self, input_dim, output_dim, q_noise, qn_block_size):
+    def build_fc2(
+        self,
+        input_dim: int,
+        output_dim: int,
+        q_noise: float,
+        qn_block_size: int,
+    ) -> nn.Linear | nn.Embedding | nn.Conv2d:
         return quant_noise(nn.Linear(input_dim, output_dim), q_noise, qn_block_size)
 
     def build_self_attention(
-        self, embed_dim, cfg, add_bias_kv=False, add_zero_attn=False
+        self,
+        embed_dim: int,
+        cfg: Cfg,
+        add_bias_kv=False,
+        add_zero_attn=False,
     ):
         return MultiheadAttention(
             embed_dim,
@@ -365,7 +455,7 @@ class TransformerDecoderLayerBase(nn.Module):
             xformers_att_config=cfg.decoder.xformers_att_config,
         )
 
-    def build_encoder_attention(self, embed_dim, cfg):
+    def build_encoder_attention(self, embed_dim: int, cfg: Cfg) -> MultiheadAttention:
         return MultiheadAttention(
             embed_dim,
             cfg.decoder.attention_heads,
@@ -386,7 +476,7 @@ class TransformerDecoderLayerBase(nn.Module):
 
     def forward(
         self,
-        x,
+        x: torch.Tensor,
         encoder_out: Optional[torch.Tensor] = None,
         encoder_padding_mask: Optional[torch.Tensor] = None,
         incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = None,
@@ -550,18 +640,28 @@ class TransformerDecoderLayer(TransformerDecoderLayerBase):
         )
         self.args = args
 
+    @override
     def build_self_attention(
-        self, embed_dim, args, add_bias_kv=False, add_zero_attn=False
+        self,
+        embed_dim: int,
+        cfg: TransformerDecoderLayerBase.Cfg,
+        add_bias_kv=False,
+        add_zero_attn=False,
     ):
         return super().build_self_attention(
             embed_dim,
-            TransformerConfig.from_namespace(args),
+            TransformerConfig.from_namespace(cfg),
             add_bias_kv=add_bias_kv,
             add_zero_attn=add_zero_attn,
         )
 
-    def build_encoder_attention(self, embed_dim, args):
+    @override
+    def build_encoder_attention(
+        self,
+        embed_dim: int,
+        cfg: TransformerDecoderLayerBase.Cfg,
+    ):
         return super().build_encoder_attention(
             embed_dim,
-            TransformerConfig.from_namespace(args),
+            TransformerConfig.from_namespace(cfg),
         )

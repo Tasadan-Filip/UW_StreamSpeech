@@ -12,6 +12,8 @@ from fairseq.modules import LayerNorm, MultiheadAttention
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.quant_noise import quant_noise
 from torch import Tensor
+
+from researches.types import get_activation_fn_uw
 from .waitseg_multihead_attention import WaitSegMultiheadAttention
 
 
@@ -52,7 +54,7 @@ class WaitSegDecoderLayer(nn.Module):
             add_zero_attn=add_zero_attn,
         )
 
-        self.activation_fn = researches.types.get_activation_fn_uw(
+        self.activation_fn = get_activation_fn_uw(
             activation=(
                 str(args.activation_fn)
                 if getattr(args, "activation_fn", None) is not None

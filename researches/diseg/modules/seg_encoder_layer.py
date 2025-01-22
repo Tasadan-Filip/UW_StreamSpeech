@@ -12,6 +12,8 @@ from fairseq.modules import LayerNorm
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.quant_noise import quant_noise
 from torch import Tensor
+
+from researches.types import get_activation_fn_uw
 from .seg_multihead_attention import SegMultiheadAttention
 
 
@@ -41,7 +43,7 @@ class SegEncoderLayer(nn.Module):
         self.dropout_module = FairseqDropout(
             args.dropout, module_name=self.__class__.__name__
         )
-        self.activation_fn = researches.types.get_activation_fn_uw(
+        self.activation_fn = get_activation_fn_uw(
             activation=getattr(args, "activation_fn", "relu") or "relu"
         )
         activation_dropout_p = getattr(args, "activation_dropout", 0) or 0

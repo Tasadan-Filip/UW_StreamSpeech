@@ -27,7 +27,7 @@ from fairseq.modules import (
 from fairseq.modules.transformer_sentence_encoder import init_bert_params
 from fairseq.utils import buffered_arange
 from fairseq.dataclass import ChoiceEnum
-from researches.types import register_model_uw
+from researches.types import get_activation_fn_uw, register_model_uw
 
 MASKING_DISTRIBUTION_CHOICES = ChoiceEnum(["static", "uniform", "normal", "poisson"])
 
@@ -456,7 +456,6 @@ class Wav2Vec2Model(BaseFairseqModel):
         return x, mask_indices
 
     def sample_negatives(self, y, num):
-
         if self.n_negatives == 0 and self.cross_sample_negatives == 0:
             return y.new(0)
 
@@ -466,7 +465,7 @@ class Wav2Vec2Model(BaseFairseqModel):
         cross_high = tsz * bsz
         high = tsz
         with torch.no_grad():
-            assert high > 1, f"{bsz,tsz,fsz}"
+            assert high > 1, f"{bsz, tsz, fsz}"
 
             if self.n_negatives > 0:
                 tszs = (
@@ -508,13 +507,10 @@ class Wav2Vec2Model(BaseFairseqModel):
         negs = y[neg_idxs.view(-1)]
         negs = negs.view(
             bsz, num, self.n_negatives + self.cross_sample_negatives, fsz
-        ).permute(
-            2, 0, 1, 3
-        )  # to NxBxTxC
+        ).permute(2, 0, 1, 3)  # to NxBxTxC
         return negs, neg_idxs
 
     def compute_preds(self, x, y, negatives):
-
         neg_is_pos = (y == negatives).all(-1)
         y = y.unsqueeze(0)
         targets = torch.cat([y, negatives], dim=0)
@@ -529,7 +525,6 @@ class Wav2Vec2Model(BaseFairseqModel):
         return logits
 
     def forward(self, source, padding_mask=None, mask=True, features_only=False):
-
         if self.feature_grad_mult > 0:
             features = self.feature_extractor(source)
             if self.feature_grad_mult != 1.0:
@@ -712,9 +707,9 @@ class ConvFeatureExtractionModel(nn.Module):
                 nn.init.kaiming_normal_(conv.weight)
                 return conv
 
-            assert (
-                is_layer_norm and is_group_norm
-            ) == False, "layer norm and group norm are exclusive"
+            assert (is_layer_norm and is_group_norm) == False, (
+                "layer norm and group norm are exclusive"
+            )
 
             if is_layer_norm:
                 return nn.Sequential(
@@ -757,7 +752,6 @@ class ConvFeatureExtractionModel(nn.Module):
             in_d = dim
 
     def forward(self, x):
-
         # BxT -> BxCxT
         x = x.unsqueeze(1)
 
@@ -820,7 +814,6 @@ class TransformerEncoder(nn.Module):
         return x
 
     def extract_features(self, x, padding_mask=None):
-
         if padding_mask is not None:
             x[padding_mask] = 0
 
@@ -874,7 +867,6 @@ class TransformerSentenceEncoderLayer(nn.Module):
         activation_fn: str = "relu",
         layer_norm_first: bool = False,
     ) -> None:
-
         super().__init__()
         # Initialize parameters
         self.embedding_dim = embedding_dim
@@ -882,7 +874,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         self.activation_dropout = activation_dropout
 
         # Initialize blocks
-        self.activation_fn = researches.types.get_activation_fn_uw(activation_fn)
+        self.activation_fn = get_activation_fn_uw(activation_fn)
         self.self_attn = MultiheadAttention(
             self.embedding_dim,
             num_attention_heads,

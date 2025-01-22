@@ -1,9 +1,7 @@
 from typing import final
 import torch
 from fairseq.modules import LayerNorm
-from fairseq.utils import get_activation_fn
 
-from researches.types import ActivationFnName, get_activation_fn_uw
 
 @final
 class StreamingSpeechEncoderFeedForwardNetwork(torch.nn.Module):
@@ -33,7 +31,7 @@ class StreamingSpeechEncoderFeedForwardNetwork(torch.nn.Module):
         self.w_2 = torch.nn.Linear(hidden_units, input_feat, bias=bias)
         self.dropout1 = torch.nn.Dropout(dropout1)
         self.dropout2 = torch.nn.Dropout(dropout2)
-        self.activation = torch.nn.SiLU(inplace = hidden_units > 0)
+        self.activation = torch.nn.SiLU(inplace=hidden_units > 0)
 
     def forward(self, x):
         """

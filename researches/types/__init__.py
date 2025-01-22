@@ -10,17 +10,36 @@ from torch import Tensor
 TaskType = TypeVar("TaskType", bound=FairseqTask)
 TaskRetType = Callable[[TaskType], type[TaskType]]
 
-def register_task_uw(name, dataclass: FairseqDataclass | None = None) -> TaskRetType[TaskType]:
+
+def register_task_uw(
+    name, dataclass: FairseqDataclass | None = None
+) -> TaskRetType[TaskType]:
     return typing.cast(TaskRetType[TaskType], register_task(name, dataclass))
 
 
 ModelType = TypeVar("ModelType", bound=BaseFairseqModel)
 ModelRetType = Callable[[ModelType], type[ModelType]]
 
-def register_model_uw(name, dataclass: FairseqDataclass | None = None) -> ModelRetType[ModelType]:
+
+def register_model_uw(
+    name, dataclass: FairseqDataclass | None = None
+) -> ModelRetType[ModelType]:
     return typing.cast(ModelRetType[ModelType], register_model(name, dataclass))
 
-ActivationFnName = Literal["relu", "relu_squared", "gelu", "gelu_fast", "gelu_accurate", "tanh", "linear", "swish"]
 
-def get_activation_fn_uw(name: ActivationFnName)-> Callable[[Tensor | int | float], Tensor]:
-    return get_activation_fn(name)
+ActivationFnName = Literal[
+    "relu",
+    "relu_squared",
+    "gelu",
+    "gelu_fast",
+    "gelu_accurate",
+    "tanh",
+    "linear",
+    "swish",
+]
+
+
+def get_activation_fn_uw(
+    activation: ActivationFnName,
+) -> Callable[[Tensor | int | float], Tensor]:
+    return get_activation_fn(activation)

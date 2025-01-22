@@ -15,6 +15,8 @@ from ctc_unity.modules.multihead_attention import MultiheadAttention
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.quant_noise import quant_noise
 
+from researches.types import get_activation_fn_uw
+
 
 class TextToUnitEncoderLayer(nn.Module):
     """Encoder layer block.
@@ -43,7 +45,7 @@ class TextToUnitEncoderLayer(nn.Module):
         self.dropout_module = FairseqDropout(
             cfg.dropout, module_name=self.__class__.__name__
         )
-        self.activation_fn = researches.types.get_activation_fn_uw(activation=cfg.activation_fn)
+        self.activation_fn = get_activation_fn_uw(activation=cfg.activation_fn)
         activation_dropout_p = cfg.activation_dropout
         if activation_dropout_p == 0:
             # for backwards compatibility with models that use cfg.relu_dropout
@@ -66,7 +68,7 @@ class TextToUnitEncoderLayer(nn.Module):
         )
 
         self.final_layer_norm = LayerNorm(self.embed_dim, export=cfg.export)
-    
+
     def forward(
         self,
         x,

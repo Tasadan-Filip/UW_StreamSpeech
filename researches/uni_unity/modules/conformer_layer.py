@@ -9,6 +9,7 @@ from typing import Literal, Optional, final
 import torch
 
 from fairseq.modules import LayerNorm
+from researches.types import get_activation_fn_uw
 from uni_unity.modules.multihead_attention import MultiheadAttention
 from uni_unity.modules.espnet_multihead_attention import (
     ESPNETMultiHeadedAttention,
@@ -28,7 +29,16 @@ class ConvolutionModule(torch.nn.Module):
         channels,
         depthwise_kernel_size,
         dropout,
-        activation_fn: Literal["relu", "relu_squared", "gelu", "gelu_fast", "gelu_accurate", "tanh", "linear", "swish"] = "swish",
+        activation_fn: Literal[
+            "relu",
+            "relu_squared",
+            "gelu",
+            "gelu_fast",
+            "gelu_accurate",
+            "tanh",
+            "linear",
+            "swish",
+        ] = "swish",
         bias=False,
         export=False,
     ):
@@ -43,9 +53,9 @@ class ConvolutionModule(torch.nn.Module):
             export: If layernorm should be exported to jit
         """
         super(ConvolutionModule, self).__init__()
-        assert (
-            depthwise_kernel_size - 1
-        ) % 2 == 0, "kernel_size should be a odd number for 'SAME' padding"
+        assert (depthwise_kernel_size - 1) % 2 == 0, (
+            "kernel_size should be a odd number for 'SAME' padding"
+        )
         self.layer_norm = LayerNorm(embed_dim, export=export)
         self.pointwise_conv1 = torch.nn.Conv1d(
             embed_dim,
@@ -82,7 +92,7 @@ class ConvolutionModule(torch.nn.Module):
         # self.depthwise_conv.weight[:,:,self.depthwise_conv.weight.size(-1)//2+1:].requires_grad_(False)
 
         self.batch_norm = torch.nn.BatchNorm1d(channels)
-        self.activation = researches.types.get_activation_fn_uw(activation_fn)(channels)
+        self.activation = get_activation_fn_uw(activation_fn)(channels)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             embed_dim,
@@ -147,7 +157,7 @@ class FeedForwardModule(torch.nn.Module):
         self.w_2 = torch.nn.Linear(hidden_units, input_feat, bias=bias)
         self.dropout1 = torch.nn.Dropout(dropout1)
         self.dropout2 = torch.nn.Dropout(dropout2)
-        self.activation = researches.types.get_activation_fn_uw(activation_fn)(hidden_units)
+        self.activation = get_activation_fn_uw(activation_fn)(hidden_units)
 
     def forward(self, x):
         """
@@ -176,8 +186,8 @@ class UniConformerEncoderLayer(torch.nn.Module):
         dropout: float,
         use_fp16,
         depthwise_conv_kernel_size: int = 31,
-        activation_fn: str ="swish",
-        attn_type: Literal["espnet"] | None =None,
+        activation_fn: str = "swish",
+        attn_type: Literal["espnet"] | None = None,
         pos_enc_type="abs",
     ):
         """
@@ -309,4 +319,3 @@ class UniConformerEncoderLayer(torch.nn.Module):
 
         x = self.final_layer_norm(x)
         return x, (attn, layer_result)
-
