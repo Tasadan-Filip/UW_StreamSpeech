@@ -158,7 +158,7 @@ class MultitaskCriterion:
 
 
 @register_criterion(
-    "speech_to_unit", dataclass=RdropLabelSmoothedCrossEntropyCriterionConfig
+    "speech_to_unit_uw", dataclass=RdropLabelSmoothedCrossEntropyCriterionConfig
 )
 class SpeechToUnitMultitaskTaskCriterion(
     RdropLabelSmoothedCrossEntropyCriterion, MultitaskCriterion
