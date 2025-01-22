@@ -9,7 +9,7 @@ from fairseq.data.audio.speech_to_text_dataset import (
 
 from fairseq.data.audio.speech_to_speech_dataset import (
     TextTargetMultitaskData,
-SpeechToTextMultitaskDataset,
+    SpeechToTextMultitaskDataset
 )
 
 class SpeechToTextDatasetModifiedCreator(SpeechToTextDatasetCreator):
