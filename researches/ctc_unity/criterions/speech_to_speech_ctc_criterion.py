@@ -24,9 +24,7 @@ from fairseq.criterions.tacotron2_loss import (
     Tacotron2CriterionConfig,
 )
 from ctc_unity.criterions.speech_to_speech_criterion import (
-    Tacotron2CriterionConfig,
     SpeechToUnit2passMultitaskTaskCriterion,
-    SpeechToSpectrogram2passMultitaskTaskCriterion,
 )
 from fairseq.data.data_utils import post_process
 
