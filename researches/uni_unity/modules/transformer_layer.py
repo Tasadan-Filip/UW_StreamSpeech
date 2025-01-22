@@ -7,7 +7,6 @@ from typing import Callable, Dict, List, Optional, Protocol
 from typing_extensions import override
 from uu import decode
 
-from fairseq.modules.layer_norm import FusedLayerNorm
 import torch
 import torch.nn as nn
 from torch import Tensor, dropout
@@ -302,7 +301,7 @@ class TransformerDecoderLayerBase(nn.Module):
     cross_self_attention: bool
 
     self_attn: MultiheadAttention
-    attn_ln: FusedLayerNorm | torch.nn.LayerNorm | None
+    attn_ln: torch.nn.LayerNorm | None
     nh: int
     head_dim: int
     scale_heads: bool = False
@@ -312,18 +311,18 @@ class TransformerDecoderLayerBase(nn.Module):
     activation_dropout_module: FairseqDropout
     normalize_before: bool
 
-    self_attn_layer_norm: FusedLayerNorm | torch.nn.LayerNorm
+    self_attn_layer_norm: torch.nn.LayerNorm
 
     encoder_attn: MultiheadAttention | None
-    encoder_attn_layer_norm: FusedLayerNorm | torch.nn.LayerNorm | None
+    encoder_attn_layer_norm: torch.nn.LayerNorm | None
 
-    ffn_layernorm: FusedLayerNorm | torch.nn.LayerNorm | None
+    ffn_layernorm: torch.nn.LayerNorm | None
     w_resid: nn.Parameter | None
 
     fc1: nn.Linear | nn.Embedding | nn.Conv2d
     fc2: nn.Linear | nn.Embedding | nn.Conv2d
 
-    final_layer_norm: FusedLayerNorm | torch.nn.LayerNorm
+    final_layer_norm: torch.nn.LayerNorm
     need_attn: bool
 
     onnx_trace: bool
