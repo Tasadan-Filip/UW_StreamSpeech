@@ -1,12 +1,15 @@
 import torch
 from typing import Optional, final
-from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer import StreamingSpeechEncoderConvolutionLayer
-from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_feed_forward_network import StreamingSpeechEncoderFeedForwardNetwork
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer import (
+    StreamingSpeechEncoderConvolutionLayer,
+)
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_feed_forward_network import (
+    StreamingSpeechEncoderFeedForwardNetwork,
+)
 from fairseq.modules import LayerNorm
 from researches.types import ActivationFnName
-from uni_unity.modules.espnet_multihead_attention import (
-    RelPositionMultiHeadedAttention
-)
+from uni_unity.modules.espnet_multihead_attention import RelPositionMultiHeadedAttention
+
 
 @final
 class StreamingSpeechEncoderLayer(torch.nn.Module):
@@ -19,11 +22,11 @@ class StreamingSpeechEncoderLayer(torch.nn.Module):
         attention_heads: int,
         dropout: float,
         use_fp16,
-        depthwise_conv_kernel_size: int=31,
-        activation_fn: ActivationFnName ="swish",
+        chunk_size: int,
+        depthwise_conv_kernel_size: int = 31,
+        activation_fn: ActivationFnName = "swish",
         attn_type=None,
         pos_enc_type="abs",
-        chunk_size=None,
     ):
         """
         Args:
@@ -51,11 +54,9 @@ class StreamingSpeechEncoderLayer(torch.nn.Module):
         self.self_attn_dropout = torch.nn.Dropout(dropout)
 
         self.self_attn = RelPositionMultiHeadedAttention(
-                    embed_dim,
-                    attention_heads,
-                    dropout=dropout
-                )  
-             
+            embed_dim, attention_heads, dropout=dropout
+        )
+
         self.convolution_layer = StreamingSpeechEncoderConvolutionLayer(
             embed_dim=embed_dim,
             channels=embed_dim,
@@ -94,14 +95,14 @@ class StreamingSpeechEncoderLayer(torch.nn.Module):
         residual = x
         x = self.self_attn_layer_norm(x)
         x, attn = self.self_attn(
-                query=x,
-                key=x,
-                value=x,
-                key_padding_mask=encoder_padding_mask,
-                pos_emb=position_emb,
-                need_weights=False,
-                extra=extra,
-            )
+            query=x,
+            key=x,
+            value=x,
+            key_padding_mask=encoder_padding_mask,
+            pos_emb=position_emb,
+            need_weights=False,
+            extra=extra,
+        )
 
         x = self.self_attn_dropout(x)
         x = x + residual

@@ -1,7 +1,10 @@
 import torch
 from fairseq.utils import get_activation_fn
 from fairseq.modules import LayerNorm
-from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer_base import StreamingSpeechEncoderConvolutionLayerBase
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer_base import (
+    StreamingSpeechEncoderConvolutionLayerBase,
+)
+from researches.types import ActivationFnName, get_activation_fn_uw
 
 
 class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
@@ -9,14 +12,14 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
 
     def __init__(
         self,
-        embed_dim,
-        channels,
-        depthwise_kernel_size,
-        dropout,
-        activation_fn="swish",
+        embed_dim: int,
+        channels: int,
+        depthwise_kernel_size: int,
+        dropout: float,
+        activation_fn: ActivationFnName = "swish",
         bias=False,
         export=False,
-        chunk_size=None,
+        chunk_size: int | None = None,
     ):
         """
         Args:
@@ -29,9 +32,9 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
             export: If layernorm should be exported to jit
         """
         super(StreamingSpeechEncoderConvolutionLayer, self).__init__()
-        assert (
-            depthwise_kernel_size - 1
-        ) % 2 == 0, "kernel_size should be a odd number for 'SAME' padding"
+        assert (depthwise_kernel_size - 1) % 2 == 0, (
+            "kernel_size should be a odd number for 'SAME' padding"
+        )
         self.layer_norm = LayerNorm(embed_dim, export=export)
         self.pointwise_conv1 = torch.nn.Conv1d(
             embed_dim,
@@ -43,16 +46,16 @@ class StreamingSpeechEncoderConvolutionLayer(torch.nn.Module):
         )
         self.glu = torch.nn.GLU(dim=1)
         self.depthwise_conv = StreamingSpeechEncoderConvolutionLayerBase(
-                channels,
-                channels,
-                depthwise_kernel_size,
-                stride=1,
-                groups=channels,
-                bias=bias,
-                chunk_size=chunk_size,
-            )
+            channels,
+            channels,
+            depthwise_kernel_size,
+            stride=1,
+            groups=channels,
+            bias=bias,
+            chunk_size=chunk_size,
+        )
         self.batch_norm = torch.nn.BatchNorm1d(channels)
-        self.activation = researches.types.get_activation_fn_uw(activation_fn)(channels)
+        self.activation = get_activation_fn_uw(activation_fn)(channels)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             embed_dim,
