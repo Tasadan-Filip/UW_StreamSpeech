@@ -10,6 +10,7 @@ from fairseq.tasks.speech_to_text import SpeechToTextTask
 from translatotron.datasets.speech_to_text_dataset_modified import (
     SpeechToTextDatasetModifiedCreator,
 )
+from researches.types import register_task_uw
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 EVAL_BLEU_ORDER = 4
 
 
-@register_task("speech_to_text_modified_uni_unity")
+@register_task_uw("speech_to_text_modified_uni_unity")
 class SpeechToTextModifiedTaskUniUnity(SpeechToTextTask):
 
     @classmethod

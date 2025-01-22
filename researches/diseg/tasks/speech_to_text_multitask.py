@@ -45,13 +45,14 @@ from fairseq.data import (
 
 from fairseq.tasks import LegacyFairseqTask, register_task
 from fairseq import search
+from researches.types import register_task_uw
 
 logger = logging.getLogger(__name__)
 
 EVAL_BLEU_ORDER = 4
 
 
-@register_task("speech_to_text_multitask")
+@register_task_uw("speech_to_text_multitask")
 class SpeechToTextMultitask(LegacyFairseqTask):
     @classmethod
     def add_args(cls, parser):

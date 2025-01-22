@@ -10,9 +10,10 @@ from translatotron.datasets.speech_to_speech_dataset_modified import (
 from translatotron.datasets.speech_to_speech_data_cfg_modified import (
     S2SDataConfigModified,
 )
+from researches.types import register_task_uw
 
 
-@register_task("speech_to_speech_modified")
+@register_task_uw("speech_to_speech_modified")
 class SpeechToSpeechTaskModified(SpeechToSpeechTask):
     args: Namespace
     datasets: Dict

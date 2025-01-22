@@ -29,6 +29,7 @@ from fairseq.dataclass import ChoiceEnum, FairseqDataclass
 from fairseq.tasks import FairseqTask, register_task
 from .hmt_sequence_generator import HmtSequenceGenerator
 from .hmt_sim_sequence_generator import HmtSimSequenceGenerator
+from researches.types import register_task_uw
 
 
 EVAL_BLEU_ORDER = 4
@@ -265,7 +266,7 @@ class HmtTranslationConfig(FairseqDataclass):
     )
 
 
-@register_task("hmt_translation", dataclass=HmtTranslationConfig)
+@register_task_uw("hmt_translation", dataclass=HmtTranslationConfig)
 class HmtTranslationTask(FairseqTask):
     """
     Translate from one (source) language to another (target) language.
