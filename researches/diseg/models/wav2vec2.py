@@ -27,11 +27,12 @@ from fairseq.modules import (
 from fairseq.modules.transformer_sentence_encoder import init_bert_params
 from fairseq.utils import buffered_arange
 from fairseq.dataclass import ChoiceEnum
+from researches.types import register_model_uw
 
 MASKING_DISTRIBUTION_CHOICES = ChoiceEnum(["static", "uniform", "normal", "poisson"])
 
 
-# @register_model("wav2vec2")
+# @register_model_uw("wav2vec2")
 class Wav2Vec2Model(BaseFairseqModel):
     @staticmethod
     def add_args(parser):

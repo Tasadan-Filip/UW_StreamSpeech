@@ -107,7 +107,7 @@ class SpeechToTextModifiedTaskTranslatotron(SpeechToTextTask):
         )
 
     def build_model(self, args, from_checkpoint=False):
-        model = super().build_model(args, from_checkpoint)
+        model = SpeechToTextTask.build_model(self, args, from_checkpoint)
         if self.args.eval_bleu:
             gen_args = json.loads(self.args.eval_bleu_args)
             self.sequence_generator = self.build_generator(
@@ -116,7 +116,7 @@ class SpeechToTextModifiedTaskTranslatotron(SpeechToTextTask):
         return model
 
     def valid_step(self, sample, model, criterion):
-        loss, sample_size, logging_output = super().valid_step(sample, model, criterion)
+        loss, sample_size, logging_output = SpeechToTextTask.valid_step(self, sample, model, criterion)
         if self.args.eval_bleu:
             bleu = self._inference_with_bleu(self.sequence_generator, sample, model)
             logging_output["_bleu_sys_len"] = bleu.sys_len

@@ -279,7 +279,7 @@ class SpeechToUnit2passMultitaskTaskCriterion(SpeechToUnitMultitaskTaskCriterion
             rdrop_alpha,
         )
 
-    def forward(self, model, sample, reduce=True):
+    def forward(self, model , sample, reduce=True):
         net_input_concat = {
             "src_tokens": sample["net_input"]["src_tokens"],
             "src_lengths": sample["net_input"]["src_lengths"],

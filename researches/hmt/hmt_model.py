@@ -26,6 +26,8 @@ from fairseq import utils
 from fairseq.dataclass import ChoiceEnum, FairseqDataclass
 from fairseq.utils import safe_getattr, safe_hasattr
 
+from researches.hmt.hmt_translation_task import HmtTranslationTask
+
 DEFAULT_MAX_SOURCE_POSITIONS = 1024
 DEFAULT_MAX_TARGET_POSITIONS = 1024
 
@@ -53,6 +55,7 @@ from fairseq.modules.transformer_layer import TransformerDecoderLayerBase
 
 from .decoder_ca_multihead_attention import DecoderCAMultiheadAttention
 from .decoder_sa_multihead_attention import DecoderSAMultiheadAttention
+from researches.types import register_model_uw
 
 
 @dataclass
@@ -330,52 +333,52 @@ class HmtTransformerModelBase(FairseqEncoderDecoderModel):
         )
 
     @classmethod
-    def build_model(cls, cfg, task):
+    def build_model(cls, args, task: HmtTranslationTask):
         """Build a new model instance."""
 
         # --  TODO T96535332
         #  bug caused by interaction between OmegaConf II and argparsing
-        cfg.decoder.input_dim = int(cfg.decoder.input_dim)
-        cfg.decoder.output_dim = int(cfg.decoder.output_dim)
+        args.decoder.input_dim = int(args.decoder.input_dim)
+        args.decoder.output_dim = int(args.decoder.output_dim)
         # --
 
-        if cfg.encoder.layers_to_keep:
-            cfg.encoder.layers = len(cfg.encoder.layers_to_keep.split(","))
-        if cfg.decoder.layers_to_keep:
-            cfg.decoder.layers = len(cfg.decoder.layers_to_keep.split(","))
+        if args.encoder.layers_to_keep:
+            args.encoder.layers = len(args.encoder.layers_to_keep.split(","))
+        if args.decoder.layers_to_keep:
+            args.decoder.layers = len(args.decoder.layers_to_keep.split(","))
 
         src_dict, tgt_dict = task.source_dictionary, task.target_dictionary
 
-        if cfg.share_all_embeddings:
+        if args.share_all_embeddings:
             if src_dict != tgt_dict:
                 raise ValueError("--share-all-embeddings requires a joined dictionary")
-            if cfg.encoder.embed_dim != cfg.decoder.embed_dim:
+            if args.encoder.embed_dim != args.decoder.embed_dim:
                 raise ValueError(
                     "--share-all-embeddings requires --encoder-embed-dim to match --decoder-embed-dim"
                 )
-            if cfg.decoder.embed_path and (
-                cfg.decoder.embed_path != cfg.encoder.embed_path
+            if args.decoder.embed_path and (
+                args.decoder.embed_path != args.encoder.embed_path
             ):
                 raise ValueError(
                     "--share-all-embeddings not compatible with --decoder-embed-path"
                 )
             encoder_embed_tokens = cls.build_embedding(
-                cfg, src_dict, cfg.encoder.embed_dim, cfg.encoder.embed_path
+                args, src_dict, args.encoder.embed_dim, args.encoder.embed_path
             )
             decoder_embed_tokens = encoder_embed_tokens
-            cfg.share_decoder_input_output_embed = True
+            args.share_decoder_input_output_embed = True
         else:
             encoder_embed_tokens = cls.build_embedding(
-                cfg, src_dict, cfg.encoder.embed_dim, cfg.encoder.embed_path
+                args, src_dict, args.encoder.embed_dim, args.encoder.embed_path
             )
             decoder_embed_tokens = cls.build_embedding(
-                cfg, tgt_dict, cfg.decoder.embed_dim, cfg.decoder.embed_path
+                args, tgt_dict, args.decoder.embed_dim, args.decoder.embed_path
             )
-        if cfg.offload_activations:
-            cfg.checkpoint_activations = True  # offloading implies checkpointing
-        encoder = cls.build_encoder(cfg, src_dict, encoder_embed_tokens)
-        decoder = cls.build_decoder(cfg, tgt_dict, decoder_embed_tokens)
-        return cls(cfg, encoder, decoder)
+        if args.offload_activations:
+            args.checkpoint_activations = True  # offloading implies checkpointing
+        encoder = cls.build_encoder(args, src_dict, encoder_embed_tokens)
+        decoder = cls.build_decoder(args, tgt_dict, decoder_embed_tokens)
+        return cls(args, encoder, decoder)
 
     @classmethod
     def build_embedding(cls, cfg, dictionary, embed_dim, path=None):
@@ -455,7 +458,7 @@ def Embedding(num_embeddings, embedding_dim, padding_idx):
     return m
 
 
-@register_model("hmt_transformer")
+@register_model_uw("hmt_transformer")
 class TransformerModel(HmtTransformerModelBase):
     """
     This is the legacy implementation of the transformer model that
@@ -566,23 +569,23 @@ class TransformerModel(HmtTransformerModelBase):
                 args, "min_params_to_wrap", DEFAULT_MIN_PARAMS_TO_WRAP
             )
         cfg = HmtTransformerConfig.from_namespace(args)
-        return super().build_model(cfg, task)
+        return HmtTransformerModelBase.build_model(cfg, task)
 
     @classmethod
     def build_embedding(cls, args, dictionary, embed_dim, path=None):
-        return super().build_embedding(
+        return HmtTransformerModelBase.build_embedding(
             HmtTransformerConfig.from_namespace(args), dictionary, embed_dim, path
         )
 
     @classmethod
     def build_encoder(cls, args, src_dict, embed_tokens):
-        return super().build_encoder(
+        return HmtTransformerModelBase.build_encoder(
             HmtTransformerConfig.from_namespace(args), src_dict, embed_tokens
         )
 
     @classmethod
     def build_decoder(cls, args, tgt_dict, embed_tokens):
-        return super().build_decoder(
+        return HmtTransformerModelBase.build_decoder(
             HmtTransformerConfig.from_namespace(args), tgt_dict, embed_tokens
         )
 

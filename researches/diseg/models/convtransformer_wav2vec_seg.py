@@ -41,6 +41,8 @@ from fairseq.modules import (
 )
 from diseg.modules.seg_encoder_layer import SegEncoderLayer
 from diseg.modules.waitseg_decoder_layer import WaitSegDecoderLayer
+from researches.types import register_model_uw
+
 
 DEFAULT_MAX_SOURCE_POSITIONS = 1024
 DEFAULT_MAX_TARGET_POSITIONS = 1024
@@ -51,7 +53,7 @@ DEFAULT_MIN_PARAMS_TO_WRAP = int(1e8)
 logger = logging.getLogger(__name__)
 
 
-@register_model("convtransformer_wav2vec_seg")
+@register_model_uw("convtransformer_wav2vec_seg")
 class ConvTransformerModelWac2VecSeg(FairseqEncoderDecoderModel):
     """
     Transformer-based Speech translation model from ESPNet-ST

@@ -4,7 +4,7 @@ import logging
 import math
 from argparse import Namespace
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Protocol
 
 import torch
 import torch.nn as nn
@@ -17,10 +17,33 @@ from fairseq.data.audio.speech_to_text_dataset import (
 from fairseq.tasks import LegacyFairseqTask, register_task
 from fairseq.tasks.speech_to_speech import DummyMultiTask
 
+from researches.types import register_task_uw
+
 logger = logging.getLogger(__name__)
 
-@register_task("speech_to_speech_uw")
+
+
+@register_task_uw("speech_to_speech_uw")
 class UWSpeechToSpeechTask(LegacyFairseqTask):
+    
+    class Obj(Protocol):
+        class Args(Protocol):
+            input_from: str
+            decoder_type: str
+
+        is_first_pass_decoder: bool
+        mt_task_name: str
+        args: Args
+        target_dictionary: Dict
+
+
+    tgt_dict: Dict
+    data_cfg: S2SDataConfig
+
+    multitask_tasks: Dict[str, Obj]
+    tgt_dict_mt: Dict | None
+    eos_token_mt: Dict | None
+
     @classmethod
     def add_args(cls, parser):
         parser.add_argument("data", help="manifest root path")
@@ -235,7 +258,7 @@ class UWSpeechToSpeechTask(LegacyFairseqTask):
         args.target_speaker_embed = self.data_cfg.target_speaker_embed is not None
         args.n_frames_per_step = self.args.n_frames_per_step
 
-        model = super().build_model(args, from_checkpoint)
+        model = LegacyFairseqTask.build_model(self, args, from_checkpoint)
 
         if len(self.multitask_tasks) > 0:
             from fairseq.models.speech_to_speech.s2s_transformer import (

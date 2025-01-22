@@ -12,12 +12,13 @@ from fairseq.models.speech_to_text.s2t_conformer import (
     S2TConformerModel,
     conformer_base_architecture,
 )
+from researches.types import register_model_uw
 
 
 logger = logging.getLogger(__name__)
 
 
-@register_model("s2t_conformer_modified")
+@register_model_uw("s2t_conformer_modified")
 class S2TConformerModelModified(S2TConformerModel):
 
     @staticmethod
@@ -31,7 +32,7 @@ class S2TConformerModelModified(S2TConformerModel):
 
     @classmethod
     def build_model(cls, args, task):
-        base_model = super().build_model(args, task)
+        base_model = S2TConformerModel.build_model(args, task)
 
         if getattr(args, "load_pretrained_s2t_from", None):
             state_dict = checkpoint_utils.load_checkpoint_to_cpu(

@@ -1,4 +1,6 @@
+from argparse import Namespace
 from pathlib import Path
+from typing import Dict
 
 from fairseq.tasks import register_task
 from fairseq.tasks.speech_to_speech import SpeechToSpeechTask
@@ -12,6 +14,12 @@ from translatotron.datasets.speech_to_speech_data_cfg_modified import (
 
 @register_task("speech_to_speech_modified")
 class SpeechToSpeechTaskModified(SpeechToSpeechTask):
+    args: Namespace
+    datasets: Dict
+    dataset_to_epoch_iter: Dict
+    tgt_dict: Dict
+    data_cfg: S2SDataConfigModified
+    multitask_tasks: Dict
 
     def __init__(self, args, tgt_dict, infer_tgt_lang_id=None):
         super().__init__(args, tgt_dict, infer_tgt_lang_id)

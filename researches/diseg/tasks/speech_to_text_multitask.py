@@ -330,7 +330,7 @@ class SpeechToTextMultitask(LegacyFairseqTask):
         args.input_feat_per_channel = self.data_cfg.input_feat_per_channel
         args.input_channels = self.data_cfg.input_channels
         args.speaker_to_id = self.speaker_to_id
-        model = super(SpeechToTextMultitask, self).build_model(args)
+        model = LegacyFairseqTask.build_model(self, args)
 
         if getattr(args, "eval_bleu", False):
             assert getattr(args, "eval_bleu_detok", None) is not None, (

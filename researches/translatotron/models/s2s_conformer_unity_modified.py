@@ -17,11 +17,12 @@ from fairseq.models.speech_to_speech.s2s_conformer_unity import (
     UnityConformerModel,
     unity_conformer_architecture_base,
 )
+from researches.types import register_model_uw
 
 logger = logging.getLogger(__name__)
 
 
-@register_model("unity_conformer_modified")
+@register_model_uw("unity_conformer_modified")
 class UnityConformerModelModified(UnityConformerModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder

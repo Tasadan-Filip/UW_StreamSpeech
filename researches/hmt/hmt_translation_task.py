@@ -366,7 +366,7 @@ class HmtTranslationTask(FairseqTask):
         )
 
     def build_model(self, cfg, from_checkpoint=False):
-        model = super().build_model(cfg, from_checkpoint)
+        model = FairseqTask.build_model(self, cfg, from_checkpoint)
         if self.cfg.eval_bleu:
             detok_args = json.loads(self.cfg.eval_bleu_detok_args)
             self.tokenizer = encoders.build_tokenizer(
@@ -380,7 +380,7 @@ class HmtTranslationTask(FairseqTask):
         return model
 
     def valid_step(self, sample, model, criterion):
-        loss, sample_size, logging_output = super().valid_step(sample, model, criterion)
+        loss, sample_size, logging_output = FairseqTask.valid_step(self, sample, model, criterion)
         if self.cfg.eval_bleu:
             bleu = self._inference_with_bleu(self.sequence_generator, sample, model)
             logging_output["_bleu_sys_len"] = bleu.sys_len
@@ -394,7 +394,7 @@ class HmtTranslationTask(FairseqTask):
         return loss, sample_size, logging_output
 
     def reduce_metrics(self, logging_outputs, criterion):
-        super().reduce_metrics(logging_outputs, criterion)
+        FairseqTask.reduce_metrics(logging_outputs, criterion)
         if self.cfg.eval_bleu:
 
             def sum_logs(key):

@@ -24,11 +24,12 @@ from fairseq.models.transformer import (
 )
 from fairseq.models.speech_to_speech.s2s_transformer import S2STransformerEncoder
 from fairseq.models.speech_to_text.s2t_transformer import S2TTransformerEncoder
+from researches.types import register_model_uw
 
 logger = logging.getLogger(__name__)
 
 
-@register_model("unity_transformer_modified")
+@register_model_uw("unity_transformer_modified")
 class UnityTransformerModelModified(UnityConformerModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder

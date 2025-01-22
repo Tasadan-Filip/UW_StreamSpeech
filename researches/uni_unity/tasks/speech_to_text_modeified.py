@@ -5,7 +5,7 @@ import numpy as np
 from argparse import Namespace
 
 from fairseq import utils, metrics
-from fairseq.tasks import register_task
+from fairseq.tasks import register_task, FairseqDataclass
 from fairseq.tasks.speech_to_text import SpeechToTextTask
 from translatotron.datasets.speech_to_text_dataset_modified import (
     SpeechToTextDatasetModifiedCreator,
@@ -106,8 +106,8 @@ class SpeechToTextModifiedTaskUniUnity(SpeechToTextTask):
             multitask=self.multitask_tasks,
         )
 
-    def build_model(self, args, from_checkpoint=False):
-        model = super().build_model(args, from_checkpoint)
+    def build_model(self, cfg: FairseqDataclass, from_checkpoint=False):
+        model = SpeechToTextTask.build_model(self, args, from_checkpoint)
         if self.args.eval_bleu:
             gen_args = json.loads(self.args.eval_bleu_args)
             self.sequence_generator = self.build_generator(
@@ -116,7 +116,7 @@ class SpeechToTextModifiedTaskUniUnity(SpeechToTextTask):
         return model
 
     def valid_step(self, sample, model, criterion):
-        loss, sample_size, logging_output = super().valid_step(sample, model, criterion)
+        loss, sample_size, logging_output = SpeechToTextTask.valid_step(self, sample, model, criterion)
         if self.args.eval_bleu:
             bleu = self._inference_with_bleu(self.sequence_generator, sample, model)
             logging_output["_bleu_sys_len"] = bleu.sys_len
@@ -130,7 +130,7 @@ class SpeechToTextModifiedTaskUniUnity(SpeechToTextTask):
         return loss, sample_size, logging_output
 
     def reduce_metrics(self, logging_outputs, criterion):
-        super().reduce_metrics(logging_outputs, criterion)
+        SpeechToTextTask.reduce_metrics(self, logging_outputs, criterion)
         if self.args.eval_bleu:
 
             def sum_logs(key):

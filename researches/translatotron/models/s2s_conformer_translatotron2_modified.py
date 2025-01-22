@@ -17,11 +17,12 @@ from fairseq.models.speech_to_speech.s2s_conformer_translatotron2 import (
     S2SpecT2ConformerModel,
     s2spect2_conformer_architecture_base,
 )
+from researches.types import register_model_uw
 
 logger = logging.getLogger(__name__)
 
 
-@register_model("s2spect2_conformer_modified")
+@register_model_uw("s2spect2_conformer_modified")
 class S2SpecT2ConformerModelModified(S2SpecT2ConformerModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + TTS Transformer decoder
