@@ -57,7 +57,7 @@ DEFAULT_MIN_PARAMS_TO_WRAP = int(1e8)
 logger = logging.getLogger(__name__)
 
 
-@register_model_uw("convtransformer_seg")
+@register_model("convtransformer_seg")
 class ConvTransformerModelWac2VecSeg(FairseqEncoderDecoderModel):
     """
     Transformer-based Speech translation model from ESPNet-ST

@@ -2,7 +2,7 @@ from typing import Callable, Literal, TypeVar
 import typing
 from fairseq.dataclass import FairseqDataclass
 from fairseq.tasks import register_task
-from fairseq.models import register_model
+from fairseq.models import BaseFairseqModel, register_model
 from fairseq.tasks.fairseq_task import FairseqTask
 from fairseq.utils import get_activation_fn
 from torch import Tensor
@@ -14,7 +14,7 @@ def register_task_uw(name, dataclass: FairseqDataclass | None = None) -> TaskRet
     return typing.cast(TaskRetType[TaskType], register_task(name, dataclass))
 
 
-ModelType = TypeVar("ModelType", bound=FairseqTask)
+ModelType = TypeVar("ModelType", bound=BaseFairseqModel)
 ModelRetType = Callable[[ModelType], type[ModelType]]
 
 def register_model_uw(name, dataclass: FairseqDataclass | None = None) -> ModelRetType[ModelType]:

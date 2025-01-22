@@ -11,7 +11,7 @@ from translatotron.datasets.speech_to_speech_data_cfg_modified import (
 from researches.types import register_task_uw
 
 
-@register_task_uw("speech_to_speech_modified_uni_unity")
+@register_task("speech_to_speech_modified_uni_unity")
 class SpeechToSpeechTaskModifiedUniUnity(SpeechToSpeechTask):
 
     def __init__(self, args, tgt_dict, infer_tgt_lang_id=None):

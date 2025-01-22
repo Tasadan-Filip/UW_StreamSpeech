@@ -32,7 +32,7 @@ from researches.types import register_model_uw
 MASKING_DISTRIBUTION_CHOICES = ChoiceEnum(["static", "uniform", "normal", "poisson"])
 
 
-# @register_model_uw("wav2vec2")
+# @register_model("wav2vec2")
 class Wav2Vec2Model(BaseFairseqModel):
     @staticmethod
     def add_args(parser):

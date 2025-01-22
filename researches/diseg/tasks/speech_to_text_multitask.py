@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 EVAL_BLEU_ORDER = 4
 
 
-@register_task_uw("speech_to_text_multitask")
+@register_task("speech_to_text_multitask")
 class SpeechToTextMultitask(LegacyFairseqTask):
     @classmethod
     def add_args(cls, parser):

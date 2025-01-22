@@ -458,7 +458,7 @@ def Embedding(num_embeddings, embedding_dim, padding_idx):
     return m
 
 
-@register_model_uw("hmt_transformer")
+@register_model("hmt_transformer")
 class TransformerModel(HmtTransformerModelBase):
     """
     This is the legacy implementation of the transformer model that

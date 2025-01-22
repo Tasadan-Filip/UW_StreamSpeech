@@ -266,7 +266,7 @@ class HmtTranslationConfig(FairseqDataclass):
     )
 
 
-@register_task_uw("hmt_translation", dataclass=HmtTranslationConfig)
+@register_task("hmt_translation", dataclass=HmtTranslationConfig)
 class HmtTranslationTask(FairseqTask):
     """
     Translate from one (source) language to another (target) language.

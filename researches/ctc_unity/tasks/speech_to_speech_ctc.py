@@ -9,7 +9,7 @@ from ctc_unity.datasets.speech_to_speech_data_cfg_modified import S2SDataConfigM
 
 from researches.types import register_task_uw
 
-@register_task_uw("speech_to_speech_ctc")
+@register_task("speech_to_speech_ctc")
 class SpeechToSpeechCTCTask(SpeechToSpeechTask):
 
     def __init__(self, args, tgt_dict, infer_tgt_lang_id=None):

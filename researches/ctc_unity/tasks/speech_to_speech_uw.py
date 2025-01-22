@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 
-@register_task_uw("speech_to_speech_uw")
+@register_task("speech_to_speech_uw")
 class UWSpeechToSpeechTask(LegacyFairseqTask):
     
     class Obj(Protocol):

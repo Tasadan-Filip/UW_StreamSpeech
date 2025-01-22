@@ -13,7 +13,7 @@ from translatotron.datasets.speech_to_speech_data_cfg_modified import (
 from researches.types import register_task_uw
 
 
-@register_task_uw("speech_to_speech_modified")
+@register_task("speech_to_speech_modified")
 class SpeechToSpeechTaskModified(SpeechToSpeechTask):
     args: Namespace
     datasets: Dict

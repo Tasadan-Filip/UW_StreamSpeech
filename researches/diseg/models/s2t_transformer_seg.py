@@ -54,7 +54,7 @@ DEFAULT_MIN_PARAMS_TO_WRAP = int(1e8)
 logger = logging.getLogger(__name__)
 
 
-@register_model_uw("s2t_transformer_seg")
+@register_model("s2t_transformer_seg")
 class S2TTransformerModel(FairseqEncoderDecoderModel):
     """Adapted Transformer model (https://arxiv.org/abs/1706.03762) for
     speech-to-text tasks. The Transformer encoder/decoder remains the same.

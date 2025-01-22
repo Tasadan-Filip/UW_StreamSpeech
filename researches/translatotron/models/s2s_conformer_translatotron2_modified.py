@@ -22,7 +22,7 @@ from researches.types import register_model_uw
 logger = logging.getLogger(__name__)
 
 
-@register_model_uw("s2spect2_conformer_modified")
+@register_model("s2spect2_conformer_modified")
 class S2SpecT2ConformerModelModified(S2SpecT2ConformerModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + TTS Transformer decoder

@@ -18,7 +18,7 @@ from researches.types import register_model_uw
 logger = logging.getLogger(__name__)
 
 
-@register_model_uw("s2t_conformer_modified")
+@register_model("s2t_conformer_modified")
 class S2TConformerModelModified(S2TConformerModel):
 
     @staticmethod

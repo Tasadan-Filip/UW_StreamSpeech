@@ -6,6 +6,7 @@
 import copy
 import logging
 from pathlib import Path
+import typing
 from ctc_unity.modules.simultaneous_text_decoder import SimultaneousTextDecoder
 from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder import StreamingSpeechEncoder
 import torch
@@ -34,14 +35,15 @@ from fairseq.models.transformer import TransformerConfig
 
 from fairseq.models import FairseqEncoderDecoderModel
 
-from researches.ctc_unity.tasks.speech_to_speech_uw import UWSpeechToSpeechTask
 from researches.types import register_model_uw
+if typing.TYPE_CHECKING:
+    from researches.ctc_unity.tasks.speech_to_speech_uw import UWSpeechToSpeechTask
 
 logger = logging.getLogger(__name__)
 
 
 
-@register_model_uw("streamspeech")
+@register_model("streamspeech")
 class StreamSpeechModel(FairseqEncoderDecoderModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
@@ -50,7 +52,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         encoder_embed_dim: int
 
     @classmethod
-    def build_model(cls, args: Args, task: UWSpeechToSpeechTask):
+    def build_model(cls, args: Args, task: "UWSpeechToSpeechTask"):
         streaming_speech_encoder = cls._build_streaming_speech_encoder(args)
         unit_ctc_decoder = cls._build_unit_ctc_decoder(
             args,
