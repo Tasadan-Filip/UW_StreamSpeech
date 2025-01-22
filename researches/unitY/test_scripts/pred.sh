@@ -20,7 +20,7 @@ mkdir -p $output_dir
 PYTHONPATH=$ROOT/fairseq fairseq-generate ${DATA} \
     --user-dir researches/translatotron \
     --config-yaml config_gcmvn.yaml --multitask-config-yaml config_unity.yaml \
-    --task speech_to_speech_modified --target-is-code --target-code-size 1000 --vocoder code_hifigan \
+    --task speech_to_speech_modified_translatotron --target-is-code --target-code-size 1000 --vocoder code_hifigan \
     --path $file --gen-subset $SPLIT \
     --beam-mt $BEAM --beam 1 --max-len-a 1 \
     --max-tokens 10000 \
