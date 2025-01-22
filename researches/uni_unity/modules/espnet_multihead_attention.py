@@ -25,6 +25,15 @@ class ESPNETMultiHeadedAttention(nn.Module):
         dropout: Dropout rate.
     """
 
+    d_k: int
+    h: int
+    linear_q: nn.Linear
+    linear_k: nn.Linear
+    linear_v: nn.Linear
+    linear_out: nn.Linear
+    attn: torch.Tensor | None
+    dropout: nn.Dropout
+
     def __init__(self, n_feat: int, n_head: int, dropout: float):
         """Construct an MultiHeadedAttention object."""
         super(ESPNETMultiHeadedAttention, self).__init__()
@@ -39,7 +48,13 @@ class ESPNETMultiHeadedAttention(nn.Module):
         self.attn = None
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward_qkv(self, query, key, value, **kwargs):
+    def forward_qkv(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        **kwargs,
+    ):
         """Transform query, key and value.
         Args:
             query: Query tensor  B X T1 X C
@@ -51,15 +66,20 @@ class ESPNETMultiHeadedAttention(nn.Module):
             torch.Tensor: Transformed value tensor  B X n_head X T2 X d_k
         """
         n_batch = query.size(0)
-        q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
-        k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
-        v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
+        q: torch.Tensor = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
+        k: torch.Tensor = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
+        v: torch.Tensor = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
         q = q.transpose(1, 2)  # (batch, head, time1, d_k)
         k = k.transpose(1, 2)  # (batch, head, time2, d_k)
         v = v.transpose(1, 2)  # (batch, head, time2, d_k)
         return q, k, v
 
-    def forward_attention(self, value, scores, mask):
+    def forward_attention(
+        self,
+        value: torch.Tensor,
+        scores: torch.Tensor,
+        mask: torch.Tensor,
+    ) -> torch.Tensor:
         """Compute attention context vector.
         Args:
             value: Transformed value B X n_head X T2 X d_k.
@@ -72,7 +92,7 @@ class ESPNETMultiHeadedAttention(nn.Module):
         n_batch = value.size(0)
         if mask is not None:
             scores = scores.masked_fill(
-                mask.unsqueeze(1).unsqueeze(2).to(bool),
+                mask.unsqueeze(1).unsqueeze(2).to(torch.bool),
                 float("-inf"),  # (batch, head, time1, time2)
             )
             self.attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
@@ -87,7 +107,15 @@ class ESPNETMultiHeadedAttention(nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, key_padding_mask=None, extra=None, **kwargs):
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        key_padding_mask=None,
+        extra=None,
+        **kwargs,
+    ):
         """Compute scaled dot product attention.
         Args:
             query (torch.Tensor): Query tensor T X B X C
@@ -153,7 +181,14 @@ class RelPositionMultiHeadedAttention(ESPNETMultiHeadedAttention):
         return x
 
     def forward(
-        self, query, key, value, pos_emb, key_padding_mask=None, extra=None, **kwargs
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        pos_emb: torch.Tensor,
+        key_padding_mask=None,
+        extra=None,
+        **kwargs,
     ):
         """Compute scaled dot product attention.
         Args:

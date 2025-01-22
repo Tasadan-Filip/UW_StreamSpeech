@@ -20,6 +20,7 @@ ModelRetType = Callable[[ModelType], type[ModelType]]
 def register_model_uw(name, dataclass: FairseqDataclass | None = None) -> ModelRetType[ModelType]:
     return typing.cast(ModelRetType[ModelType], register_model(name, dataclass))
 
+ActivationFnName = Literal["relu", "relu_squared", "gelu", "gelu_fast", "gelu_accurate", "tanh", "linear", "swish"]
 
-def get_activation_fn_uw(name:  Literal["relu", "relu_squared", "gelu", "gelu_fast", "gelu_accurate", "tanh", "linear", "swish"])-> Callable[[Tensor], Tensor]:
+def get_activation_fn_uw(name: ActivationFnName)-> Callable[[Tensor | int | float], Tensor]:
     return get_activation_fn(name)

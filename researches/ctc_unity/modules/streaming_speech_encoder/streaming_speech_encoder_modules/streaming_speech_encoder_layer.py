@@ -1,24 +1,26 @@
 import torch
-from typing import Optional
+from typing import Optional, final
 from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_convolution_layer import StreamingSpeechEncoderConvolutionLayer
 from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder_modules.streaming_speech_encoder_feed_forward_network import StreamingSpeechEncoderFeedForwardNetwork
 from fairseq.modules import LayerNorm
+from researches.types import ActivationFnName
 from uni_unity.modules.espnet_multihead_attention import (
     RelPositionMultiHeadedAttention
 )
 
+@final
 class StreamingSpeechEncoderLayer(torch.nn.Module):
     """Conformer block based on https://arxiv.org/abs/2005.08100. We currently don't support relative positional encoding in MHA"""
 
     def __init__(
         self,
-        embed_dim,
-        ffn_embed_dim,
-        attention_heads,
-        dropout,
+        embed_dim: int,
+        ffn_embed_dim: int,
+        attention_heads: int,
+        dropout: float,
         use_fp16,
-        depthwise_conv_kernel_size=31,
-        activation_fn="swish",
+        depthwise_conv_kernel_size: int=31,
+        activation_fn: ActivationFnName ="swish",
         attn_type=None,
         pos_enc_type="abs",
         chunk_size=None,
@@ -68,13 +70,12 @@ class StreamingSpeechEncoderLayer(torch.nn.Module):
             ffn_embed_dim,
             dropout,
             dropout,
-            activation_fn=activation_fn,
         )
         self.final_layer_norm = LayerNorm(embed_dim, export=False)
 
     def forward(
         self,
-        x,
+        x: torch.Tensor,
         encoder_padding_mask: Optional[torch.Tensor],
         position_emb: Optional[torch.Tensor] = None,
         extra=None,
