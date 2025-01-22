@@ -5,7 +5,7 @@
 
 import logging
 import math
-from typing import Literal, Protocol
+from typing import Any, Iterable, Literal, Protocol, SupportsIndex
 
 import torch
 from fairseq import utils
@@ -43,14 +43,13 @@ class UniS2TConformerEncoder(FairseqEncoder):
         pos_enc_type: Literal["rel_pos"] | Literal["rope"] | Literal["abs"]
         max_source_positions: int
         dropout: float
-        encoder_ffn_embed_dim
-        encoder_attention_heads
-        dropout
-        depthwise_conv_kernel_size
-        attn_type
-        fp16
-        encoder_layers
-        uni_encoder
+        encoder_ffn_embed_dim: int
+        encoder_attention_heads: int
+        depthwise_conv_kernel_size: int
+        attn_type: Literal["espnet"] | None
+        fp16: Any
+        encoder_layers: SupportsIndex
+        uni_encoder: bool = False
 
 
     def __init__(self, args: Args):
@@ -110,7 +109,7 @@ class UniS2TConformerEncoder(FairseqEncoder):
         )
 
         self._future_mask = torch.empty(0)
-        self.unidirectional = getattr(args, "uni_encoder", False)
+        self.unidirectional = args.uni_encoder
 
     def _forward(self, src_tokens, src_lengths, return_all_hiddens=False):
         """
