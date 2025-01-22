@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 EVAL_BLEU_ORDER = 4
 
 
-@register_task("speech_to_text_modified")
-class SpeechToTextModifiedTask(SpeechToTextTask):
+@register_task("speech_to_text_modified_translatotron")
+class SpeechToTextModifiedTaskTranslatotron(SpeechToTextTask):
 
     @classmethod
     def add_args(cls, parser):
