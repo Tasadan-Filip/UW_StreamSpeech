@@ -8,9 +8,9 @@
 
 To use `fairseq-cli` commands you can either:
 
-**A**: Enable virtual environment: `source .venv/bin/activate`; then you can run like e.x. `fairseq-train`
+**A**: Enable virtual environment: `source .venv/bin/activate`; then you can run installed commands like e.x. `fairseq-train`, `pyright`, `simuleval`, ...
 
-**B**: Use `uv run ...`: e.x. `uv run fairseq-train`
+**B**: Use `uv run ...`: e.x. `uv run fairseq-train`, `uv run pyright`, `uv run simuleval`, ...
 
 [Working with dependencies in UV](https://docs.astral.sh/uv/guides/projects/#managing-dependencies)
 
