@@ -6,9 +6,11 @@ from fairseq.data.audio.speech_to_text_dataset import (
     SpeechToTextDataset,
     SpeechToTextDatasetCreator,
     SpeechToTextMultitaskDataset,
-    TextTargetMultitaskData,
 )
 
+from fairseq.data.audio.speech_to_speech_dataset import (
+    TextTargetMultitaskData,
+)
 
 class SpeechToTextDatasetModifiedCreator(SpeechToTextDatasetCreator):
     DEFAULT_TGT_TEXT = ""

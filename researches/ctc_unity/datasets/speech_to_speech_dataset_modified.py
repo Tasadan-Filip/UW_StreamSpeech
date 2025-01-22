@@ -10,12 +10,12 @@ from fairseq.data.audio.speech_to_text_dataset import (
 )
 from fairseq.data.audio.audio_utils import get_features_or_waveform
 from fairseq.data.audio.feature_transforms import CompositeAudioFeatureTransform
-from fairseq.data.audio.waveform_transforms import CompositeAudioWaveformTransform
-from fairseq.data.audio.speech_to_text_dataset import TextTargetMultitaskData
+from audio import CompositeAudioWaveformTransform
 from fairseq.data.audio.speech_to_speech_dataset import (
     SpeechToSpeechDatasetItem,
     SpeechToSpeechDataset,
     SpeechToSpeechMultitaskDataset,
+    TextTargetMultitaskData,
 )
 from translatotron.datasets.speech_to_speech_data_cfg_modified import (
     S2SDataConfigModified,
