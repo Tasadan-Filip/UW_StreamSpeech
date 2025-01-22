@@ -44,6 +44,7 @@ class OnlineFeatureExtractor:
     """
     Extract speech feature on the fly.
     """
+
     shift_size: int
     window_size: int
     sample_rate: float
@@ -57,7 +58,7 @@ class OnlineFeatureExtractor:
     len_ms_to_samples: Callable[[int | float], float]
 
     previous_residual_samples: list[Any]
-    
+
     class Args(Protocol):
         shift_size: int
         window_size: int
@@ -129,7 +130,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
     Incrementally feed text to this offline Fastspeech2 TTS model,
     with a minimum numbers of phonemes every chunk.
     """
-    
+
     @dataclasses.dataclass
     class Args(Namespace):
         max_len: int
@@ -149,7 +150,6 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
         feature_dim: int
         global_cmvn: dict[Literal["mean"] | Literal["std"], float] | None
 
-
     def __init__(self, args: Args):
         super().__init__(args)
         self.eos = DEFAULT_EOS
@@ -158,7 +158,6 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
         self.gpu = self.args.device == "gpu"
         self.device = "cuda" if args.device == "gpu" else "cpu"
-
 
         self.load_model_vocab(args)
 
@@ -172,7 +171,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
         tgt_dict = self.dict["tgt"]
         tgt_dict_asr = self.dict["source_unigram"]
         tgt_dict_st = self.dict["ctc_target_unigram"]
-        args.user_dir=args.agent_dir
+        args.user_dir = args.agent_dir
         utils.import_user_module(args)
         from agent.sequence_generator import SequenceGenerator
         from agent.ctc_generator import CTCSequenceGenerator
@@ -404,7 +403,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             raise IOError("Model file not found: {}".format(filename))
 
         state = checkpoint_utils.load_checkpoint_to_cpu(filename)
-        state["cfg"].common['user_dir']=args.user_dir
+        state["cfg"].common["user_dir"] = args.user_dir
         utils.import_user_module(state["cfg"].common)
 
         task_args = state["cfg"]["task"]
@@ -467,7 +466,6 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
     @torch.inference_mode()
     def policy(self):
-
         feature = self.feature_extractor(self.states.source)
 
         if feature.size(0) == 0 and not self.states.source_finished:
@@ -727,7 +725,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
                 "src_tokens": [],
                 "src_lengths": [],
             }
-        
+
         assert not getattr(single_model, "t2u_augmented_cross_attn", False)
 
         encoder_outs = [t2u_encoder_out]
@@ -765,7 +763,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
         if len(unit) > 0 and unit[0] == " ":
             unit = unit[1:]
-        
+
         for i, hypo in enumerate(finalized):
             i_beam = 0
             tmp = hypo[i_beam]["tokens"].int()  # hyp + eos

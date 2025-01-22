@@ -4,7 +4,7 @@ import logging
 import math
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Protocol
+from typing import Any, Callable, Dict, List, Literal, Protocol, final
 
 import torch
 import torch.nn as nn
@@ -15,40 +15,43 @@ from fairseq.data.audio.speech_to_text_dataset import (
     SpeechToTextDataset,
 )
 from fairseq.tasks import LegacyFairseqTask, register_task
-from fairseq.tasks.speech_to_speech import DummyMultiTask
 
+from researches.tasks import DummyMultiTask
 from researches.types import register_task_uw
 
 logger = logging.getLogger(__name__)
 
 
-
 @register_task("speech_to_speech_uw")
+@final
 class UWSpeechToSpeechTask(LegacyFairseqTask):
-    
     class Obj(Protocol):
         class Args(Protocol):
             input_from: str
-            decoder_type: str
+            decoder_type: Literal["ctc"]
 
-        is_first_pass_decoder: bool
-        mt_task_name: str
         args: Args
-        target_dictionary: Dict
 
+        @property
+        def target_dictionary(self) -> dict:
+            pass
 
-    tgt_dict: Dict
+        @property
+        def is_first_pass_decoder(self) -> bool:
+            pass
+
+    tgt_dict: dict
     data_cfg: S2SDataConfig
 
-    multitask_tasks: Dict[str, Obj]
-    tgt_dict_mt: Dict | None
-    eos_token_mt: Dict | None
+    multitask_tasks: dict[str, Obj]
+    tgt_dict_mt: dict | None
+    eos_token_mt: dict | None
 
     @classmethod
     def add_args(cls, parser):
         parser.add_argument("data", help="manifest root path")
         # ./fr-en/config_gcmvn.yaml
-        parser.add_argument(     
+        parser.add_argument(
             "--config-yaml",
             type=str,
             default="config.yaml",
@@ -129,7 +132,7 @@ class UWSpeechToSpeechTask(LegacyFairseqTask):
 
         self.multitask_tasks = {}
         self.tgt_dict_mt = None
-        self.eos_token_mt = None 
+        self.eos_token_mt = None
 
         ## setup multitask task config
         if getattr(args, "multitask_config_yaml", None) is not None:
@@ -167,7 +170,7 @@ class UWSpeechToSpeechTask(LegacyFairseqTask):
         infer_tgt_lang_id = None
 
         ## setup the target dictionary
-        if args.target_is_code: # true in config
+        if args.target_is_code:  # true in config
             if data_cfg.prepend_tgt_lang_tag_as_bos:
                 # dictionary with language tags
                 dict_path = Path(args.data) / data_cfg.vocab_filename
@@ -190,7 +193,7 @@ class UWSpeechToSpeechTask(LegacyFairseqTask):
                 tgt_dict = Dictionary()
                 for i in range(args.target_code_size):
                     tgt_dict.add_symbol(str(i))
-            logger.info(f"dictionary size: " f"{len(tgt_dict):,}")
+            logger.info(f"dictionary size: {len(tgt_dict):,}")
 
         if getattr(args, "train_subset", None) is not None:
             if not all(s.startswith("train") for s in args.train_subset.split(",")):
@@ -267,9 +270,8 @@ class UWSpeechToSpeechTask(LegacyFairseqTask):
 
             assert isinstance(model, S2STransformerMultitaskModelBase)
 
-
         ## should not be used!
-        # if self.args.eval_inference: 
+        # if self.args.eval_inference:
         #     self.eval_gen_args = json.loads(self.args.eval_args)
         #     self.generator = self.build_generator(
         #         [model], Namespace(**self.eval_gen_args)
