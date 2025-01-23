@@ -10,3 +10,4 @@ pretrain_models/mHuBERT/
 pretrain_models/unit-based_HiFi-GAN_vocoder/
 download_dataset_and_eval.sh
 eval_job.slurm
+res/
