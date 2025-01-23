@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from torch import Tensor
 from fairseq.models import FairseqEncoderDecoderModel
 
+logger = ...
 class TransformerModelBase(FairseqEncoderDecoderModel):
     """
     Transformer model from `"Attention Is All You Need" (Vaswani, et al, 2017)

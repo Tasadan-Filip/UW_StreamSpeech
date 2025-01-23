@@ -22,9 +22,8 @@ class DenoisingDataset(FairseqDataset):
         shuffle (bool, optional): shuffle the elements before batching.
           Default: ``True``
         seed: Seed for random number generator for reproducibility.
-        args: argparse arguments.
     """
-    def __init__(self, dataset, sizes, vocab, mask_idx, mask_whole_words, shuffle, seed, args, eos=..., item_transform_func=...) -> None:
+    def __init__(self, dataset, sizes, vocab, mask_idx, mask_whole_words, shuffle, seed, mask, mask_random, insert, rotate, permute_sentences, bpe, replace_length, mask_length, poisson_lambda, eos=..., item_transform_func=...) -> None:
         ...
     
     @property

@@ -242,3 +242,52 @@ def safe_hasattr(obj, k): # -> bool:
     """Returns True if the given key exists and is not None."""
     ...
 
+def hotreload_function(name=...): # -> Callable[..., Callable[..., object]]:
+    """
+    Decorator to function to enable hot-reload for debugging.
+    It allows you to debug a function without having reloading all heavy models, dataset loading and
+        preprocessing, allow faster debugging.
+    If you want to change model or dataset loading, consider relaunching your code
+    -----------------------------------
+    This will run the decorated function func:
+        if func run successful:
+            It will pause, allow user to edit code, and prompt user to:
+                Press enter to re-run the function with updated code
+                Type "done" to finish the function, return output
+                Type "disable" to stop pausing this function and let code continue without pause
+                Ctril + C to terminal
+        if func raise error:
+            it will prompt user to
+                1. Edit code, and press enter to retry
+                2. Ctrl + C to terminate
+                3. Type "raise" to raise that exception
+    * Requirements:
+        0. Fairseq was installed with `pip install --editable .`
+        1. pip install jurigged[develoop]
+        2. set environment HOTRELOAD_PAUSE=1 CUDA_LAUNCH_BLOCKING=1
+        3. Run on only 1 GPU (no distributed)
+    * How to use:
+        1. in python, import and decorate the top-level function to be re-run after code edits:
+            ```python
+            from fairseq.utils import hotreload_function
+            ....
+            @hotreload_function("train_step")
+            def train_step(self, sample ....):
+                ....
+            ....
+            ```
+        2. in bash run scripts:
+            ```bash
+            watch_dir=<home>/fairseq-py/fairseq/tasks # directory to watch for file changes
+            export CUDA_VISIBLE_DEVICES=0 # single-gpu
+            HOTRELOAD_PAUSE=1 CUDA_LAUNCH_BLOCKING=1 python -m jurigged -w ${watch_dir} --poll 2 -v train.py ......
+            ```
+    * NOTE:
+        1. -w ${watch_dir} specify all the files to be watched for changes
+            once functions, class, ... code are changed, all instances in the process will get updated (hot-reload)
+    * Limitation:
+        * Currently distributed debugging not working
+        * Need to launch train.py locally (cannot submit jobs)
+    """
+    ...
+

@@ -7,7 +7,7 @@ from typing import Dict, List
 from torch import nn
 
 logger = ...
-def from_pretrained(model_name_or_path, checkpoint_file=..., data_name_or_path=..., archive_map=..., **kwargs): # -> dict[str, DictConfig | Any | list[Any] | None]:
+def from_pretrained(model_name_or_path, checkpoint_file=..., data_name_or_path=..., archive_map=..., **kwargs): # -> dict[str, dict[str, Any | str | list[Any] | None] | DictConfig | Any | list[Any] | None]:
     ...
 
 class GeneratorHubInterface(nn.Module):

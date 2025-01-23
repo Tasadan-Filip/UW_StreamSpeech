@@ -109,7 +109,7 @@ class StreamingEpochBatchIterator(EpochBatchIterating):
         timeout (int, optional): if positive, the timeout value for collecting a batch
             from workers. Should always be non-negative (default: ``0``).
     """
-    def __init__(self, dataset, max_sentences=..., collate_fn=..., epoch=..., num_workers=..., buffer_size=..., timeout=...) -> None:
+    def __init__(self, dataset, max_sentences=..., collate_fn=..., epoch=..., num_workers=..., buffer_size=..., timeout=..., persistent_workers=...) -> None:
         ...
     
     @property
@@ -193,7 +193,7 @@ class EpochBatchIterator(EpochBatchIterating):
             of num_shards. Ensures that each GPU receives similar length sequences when
             batches are sorted by length.
     """
-    def __init__(self, dataset, collate_fn, batch_sampler, seed=..., num_shards=..., shard_id=..., num_workers=..., epoch=..., buffer_size=..., timeout=..., disable_shuffling=..., skip_remainder_batch=..., grouped_shuffling=..., reuse_dataloader=...) -> None:
+    def __init__(self, dataset, collate_fn, batch_sampler, seed=..., num_shards=..., shard_id=..., num_workers=..., epoch=..., buffer_size=..., timeout=..., disable_shuffling=..., skip_remainder_batch=..., grouped_shuffling=..., reuse_dataloader=..., persistent_workers=...) -> None:
         ...
     
     @property
@@ -330,7 +330,7 @@ class GroupedEpochBatchIterator(EpochBatchIterator):
     mult_rate is used for update_freq > 1 case where we want to make sure update_freq
     mini-batches come from same source
     """
-    def __init__(self, dataset, collate_fn, batch_samplers, seed=..., num_shards=..., shard_id=..., num_workers=..., epoch=..., mult_rate=..., buffer_size=..., skip_remainder_batch=...) -> None:
+    def __init__(self, dataset, collate_fn, batch_samplers, seed=..., num_shards=..., shard_id=..., num_workers=..., epoch=..., mult_rate=..., buffer_size=..., skip_remainder_batch=..., reuse_dataloader=..., persistent_workers=...) -> None:
         ...
     
     def __len__(self): # -> int:

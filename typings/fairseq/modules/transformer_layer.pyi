@@ -19,7 +19,7 @@ class TransformerEncoderLayerBase(nn.Module):
     *cfg.encoder.normalize_before* to ``True``.
 
     Args:
-        args (argparse.Namespace): parsed command-line arguments
+        cfg (argparse.Namespace): parsed command-line arguments
     """
     def __init__(self, cfg, return_fc=...) -> None:
         ...
@@ -44,7 +44,7 @@ class TransformerEncoderLayerBase(nn.Module):
         """
         ...
     
-    def forward(self, x, encoder_padding_mask: Optional[Tensor], attn_mask: Optional[Tensor] = ...): # -> Tensor | tuple[Any, Any] | Any:
+    def forward(self, x, encoder_padding_mask: Optional[Tensor], attn_mask: Optional[Tensor] = ...): # -> tuple[Any, Any] | Any:
         """
         Args:
             x (Tensor): input to the layer of shape `(seq_len, batch, embed_dim)`

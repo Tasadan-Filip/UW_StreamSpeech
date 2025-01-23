@@ -10,7 +10,7 @@ from .character_token_embedder import CharacterTokenEmbedder
 from .conv_tbc import ConvTBC
 from .cross_entropy import cross_entropy
 from .downsampled_multihead_attention import DownsampledMultiHeadAttention
-from .dynamic_convolution import DynamicConv, DynamicConv1dTBC
+from .dynamic_convolution import DynamicConv, DynamicConv1dTBC, DynamicConv_scripatable
 from .dynamic_crf_layer import DynamicCRF
 from .ema_module import EMAModule, EMAModuleConfig
 from .fairseq_dropout import FairseqDropout
@@ -44,4 +44,4 @@ from .rotary_positional_embedding import RotaryPositionalEmbedding
 from .positional_encoding import RelPositionalEncoding
 
 """isort:skip_file"""
-__all__ = ["AdaptiveInput", "AdaptiveSoftmax", "BaseLayer", "BeamableMM", "CharacterTokenEmbedder", "ConvTBC", "cross_entropy", "DownsampledMultiHeadAttention", "DynamicConv1dTBC", "DynamicConv", "DynamicCRF", "EMAModule", "EMAModuleConfig", "FairseqDropout", "Fp32BatchNorm", "Fp32GroupNorm", "Fp32LayerNorm", "Fp32InstanceNorm", "gelu", "gelu_accurate", "GradMultiply", "GumbelVectorQuantizer", "KmeansVectorQuantizer", "LayerDropModuleList", "LayerNorm", "LearnedPositionalEmbedding", "LightweightConv1dTBC", "LightweightConv", "LinearizedConvolution", "LocationAttention", "LSTMCellWithZoneOut", "MultiheadAttention", "PositionalEmbedding", "SamePad", "ScalarBias", "SinusoidalPositionalEmbedding", "TransformerSentenceEncoderLayer", "TransformerSentenceEncoder", "TransformerDecoderLayer", "TransformerEncoderLayer", "TransposeLast", "VGGBlock", "unfold1d", "ESPNETMultiheadedAttention", "PositionalEmbedding", "RelPositionMultiHeadedAttention", "RelPositionalEncoding", "RotaryPositionalEmbedding", "RotaryPositionMultiHeadedAttention"]
+__all__ = ["AdaptiveInput", "AdaptiveSoftmax", "BaseLayer", "BeamableMM", "CharacterTokenEmbedder", "ConvTBC", "cross_entropy", "DownsampledMultiHeadAttention", "DynamicConv1dTBC", "DynamicConv", "DynamicConv_scripatable", "DynamicCRF", "EMAModule", "EMAModuleConfig", "FairseqDropout", "Fp32BatchNorm", "Fp32GroupNorm", "Fp32LayerNorm", "Fp32InstanceNorm", "gelu", "gelu_accurate", "GradMultiply", "GumbelVectorQuantizer", "KmeansVectorQuantizer", "LayerDropModuleList", "LayerNorm", "LearnedPositionalEmbedding", "LightweightConv1dTBC", "LightweightConv", "LinearizedConvolution", "LocationAttention", "LSTMCellWithZoneOut", "MultiheadAttention", "PositionalEmbedding", "SamePad", "ScalarBias", "SinusoidalPositionalEmbedding", "TransformerSentenceEncoderLayer", "TransformerSentenceEncoder", "TransformerDecoderLayer", "TransformerEncoderLayer", "TransposeLast", "VGGBlock", "unfold1d", "ESPNETMultiheadedAttention", "PositionalEmbedding", "RelPositionMultiHeadedAttention", "RelPositionalEncoding", "RotaryPositionalEmbedding", "RotaryPositionMultiHeadedAttention"]

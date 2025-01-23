@@ -27,6 +27,16 @@ class AutoRegressiveSpeechGenerator(SpeechGenerator):
     
 
 
+class MultiDecoderSpeechGenerator(SpeechGenerator):
+    def __init__(self, models, args, vocoder, data_cfg, tgt_dict_mt, max_iter: int = ..., eos_prob_threshold: float = ..., eos_mt=..., symbols_to_strip_from_output=...) -> None:
+        ...
+    
+    @torch.no_grad()
+    def generate(self, model, sample, has_targ=..., **kwargs): # -> list[dict[str, Any | Tensor | None]]:
+        ...
+    
+
+
 class NonAutoregressiveSpeechGenerator(SpeechGenerator):
     @torch.no_grad()
     def generate(self, model, sample, has_targ=..., **kwargs): # -> list[dict[str, Any | None]]:

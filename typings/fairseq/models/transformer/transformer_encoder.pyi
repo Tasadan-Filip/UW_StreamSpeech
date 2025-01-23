@@ -29,7 +29,7 @@ class TransformerEncoderBase(FairseqEncoder):
     def forward_embedding(self, src_tokens, token_embedding: Optional[torch.Tensor] = ...): # -> tuple[Any, Any | Tensor]:
         ...
     
-    def forward(self, src_tokens, src_lengths: Optional[torch.Tensor] = ..., return_all_hiddens: bool = ..., token_embeddings: Optional[torch.Tensor] = ...): # -> dict[str, list[Any | Tensor | tuple[Any, ...]] | list[Any] | list[Any | Tensor] | list[Any | Tensor | None]]:
+    def forward(self, src_tokens, src_lengths: Optional[torch.Tensor] = ..., return_all_hiddens: bool = ..., token_embeddings: Optional[torch.Tensor] = ...): # -> dict[str, list[Any | tuple[Any, ...]] | list[Any] | list[Any | Tensor] | list[Any | Tensor | None]]:
         """
         Args:
             src_tokens (LongTensor): tokens in the source language of shape
@@ -55,7 +55,7 @@ class TransformerEncoderBase(FairseqEncoder):
         """
         ...
     
-    def forward_scriptable(self, src_tokens, src_lengths: Optional[torch.Tensor] = ..., return_all_hiddens: bool = ..., token_embeddings: Optional[torch.Tensor] = ...): # -> dict[str, list[Any | Tensor | tuple[Any, ...]] | list[Any] | list[Any | Tensor] | list[Any | Tensor | None]]:
+    def forward_scriptable(self, src_tokens, src_lengths: Optional[torch.Tensor] = ..., return_all_hiddens: bool = ..., token_embeddings: Optional[torch.Tensor] = ...): # -> dict[str, list[Any | tuple[Any, ...]] | list[Any] | list[Any | Tensor] | list[Any | Tensor | None]]:
         """
         Args:
             src_tokens (LongTensor): tokens in the source language of shape

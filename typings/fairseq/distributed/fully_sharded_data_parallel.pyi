@@ -37,6 +37,18 @@ class FullyShardedDataParallel(FSDP):
     
 
 
+class DummyProcessGroup:
+    def __init__(self, rank: int, size: int) -> None:
+        ...
+    
+    def rank(self) -> int:
+        ...
+    
+    def size(self) -> int:
+        ...
+    
+
+
 @contextlib.contextmanager
 def fsdp_enable_wrap(cfg: DistributedTrainingConfig): # -> Generator[None, Any, None]:
     ...

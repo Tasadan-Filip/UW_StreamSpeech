@@ -11,14 +11,17 @@ import torch
 
 from fairseq import utils
 from fairseq.logging import metrics
+
 from fairseq.criterions import register_criterion
 from fairseq.criterions.ctc import CtcCriterion
-from ctc_unity.criterions.label_smoothed_cross_entropy_with_rdrop import (
+from fairseq.criterions.label_smoothed_cross_entropy_with_rdrop import (
     RdropLabelSmoothedCrossEntropyCriterion,
     RdropLabelSmoothedCrossEntropyCriterionConfig,
     duplicate_input,
 )
-from fairseq.criterions.speech_to_speech_criterion import SpeechToSpectrogramMultitaskTaskCriterion
+from fairseq.criterions.speech_to_speech_criterion import (
+    SpeechToSpectrogramMultitaskTaskCriterion,
+)
 from fairseq.criterions.tacotron2_loss import (
     Tacotron2Criterion,
     Tacotron2CriterionConfig,
@@ -52,13 +55,13 @@ class MultitaskCriterion:
                     rdrop_alpha=rdrop_alpha_task,
                 )
             else:
-                self.multitask_criterion[
-                    task_name
-                ] = RdropLabelSmoothedCrossEntropyCriterion(
-                    task_obj,
-                    task_obj.args.criterion_cfg.sentence_avg,
-                    label_smoothing=task_obj.args.criterion_cfg.label_smoothing,
-                    rdrop_alpha=rdrop_alpha_task,
+                self.multitask_criterion[task_name] = (
+                    RdropLabelSmoothedCrossEntropyCriterion(
+                        task_obj,
+                        task_obj.args.criterion_cfg.sentence_avg,
+                        label_smoothing=task_obj.args.criterion_cfg.label_smoothing,
+                        rdrop_alpha=rdrop_alpha_task,
+                    )
                 )
 
     def set_multitask_loss_weight(self, task_name, weight=0.0):
@@ -279,7 +282,7 @@ class SpeechToUnit2passMultitaskTaskCriterion(SpeechToUnitMultitaskTaskCriterion
             rdrop_alpha,
         )
 
-    def forward(self, model , sample, reduce=True):
+    def forward(self, model, sample, reduce=True):
         net_input_concat = {
             "src_tokens": sample["net_input"]["src_tokens"],
             "src_lengths": sample["net_input"]["src_lengths"],
@@ -329,7 +332,6 @@ class SpeechToUnit2passMultitaskTaskCriterion(SpeechToUnitMultitaskTaskCriterion
         logging_output["multitask"] = multitask_log
 
         return loss, sample_size, logging_output
-
 
 
 @register_criterion("speech_to_spectrogram_2pass", dataclass=Tacotron2CriterionConfig)
