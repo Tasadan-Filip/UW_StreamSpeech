@@ -4,38 +4,24 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-import math
-from collections import OrderedDict
 import random
 import torch
 from dataclasses import dataclass, field
-from fairseq import utils
-from fairseq.logging import metrics
 from fairseq.criterions import register_criterion
-from fairseq.criterions.ctc import CtcCriterion
-from fairseq.criterions.label_smoothed_cross_entropy_with_rdrop import (
-    RdropLabelSmoothedCrossEntropyCriterion,
-    RdropLabelSmoothedCrossEntropyCriterionConfig,
-    duplicate_input,
+from fairseq.criterions.label_smoothed_cross_entropy import (
+    LabelSmoothedCrossEntropyCriterionConfig,
 )
 import torch.nn.functional as F
-from fairseq.criterions.tacotron2_loss import (
-    Tacotron2Criterion,
-    Tacotron2CriterionConfig,
-)
 from fairseq.criterions.speech_to_speech_criterion import (
-    Tacotron2CriterionConfig,
     SpeechToUnit2passMultitaskTaskCriterion,
-    SpeechToSpectrogram2passMultitaskTaskCriterion,
 )
-from fairseq.data.data_utils import post_process
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SpeechToUnit2passCTCCriterionConfig(
-    RdropLabelSmoothedCrossEntropyCriterionConfig
+    LabelSmoothedCrossEntropyCriterionConfig
 ):
     k1: int = field(
         default=3,
@@ -134,14 +120,14 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
             "tgt_speaker": sample["net_input"].get("tgt_speaker", None),
             "return_all_hiddens": True,
         }
+
+        # Handle optional ASR task-specific inputs
         if getattr(model, "asr_task_name", None) is not None:
             net_input_concat["prev_output_tokens_asr"] = sample["multitask"][
                 model.asr_task_name
             ]["net_input"]["prev_output_tokens"]
 
-        if self.rdrop_alpha > 0 or self.rdrop_alpha_mtl > 0:
-            net_input_concat = duplicate_input(net_input_concat)
-
+        # Configure chunk size dynamically for multi-chunk processing
         num_updates = model.encoder.num_updates
         if self.multichunk:
             if not model.training:
@@ -164,14 +150,20 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
             for layer in model.encoder.conformer_layers:
                 layer.conv_module.depthwise_conv.chunk_size = chunk_size
 
+        # Obtain model outputs
         net_output, extra = model(**net_input_concat)
-        loss, nll_loss, rdrop_kl_loss = self.compute_loss(
+
+        # Compute the loss and negative log-likelihood loss
+        # NOTE: seems like loss and nll_loss are always the same?
+        loss, nll_loss = self.compute_loss(
             model, [net_output, extra], sample, reduce=reduce
         )
 
+        # Determine sample size for loss averaging
         sample_size = (
             sample["target"].size(0) if self.sentence_avg else sample["ntokens"]
         )
+
         logging_output = {
             "loss": loss.data,
             "nll_loss": nll_loss.data,
@@ -179,31 +171,35 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
             "nsentences": sample["target"].size(0),
             "sample_size": sample_size,
         }
+
+        # Compute accuracy if required and model is in evaluation mode
         if self.report_accuracy and not model.training:
             n_correct, total = self.compute_accuracy(model, [net_output, extra], sample)
             logging_output["n_correct"] = n_correct
             logging_output["total"] = total
-        if self.rdrop_alpha > 0:
-            logging_output["rdrop_kl_loss"] = utils.item(rdrop_kl_loss.data)
 
         if len(self.multitask_criterion) == 0:
             return loss, sample_size, logging_output
 
-        # multitask
+        # Add multitask losses and logs if multitask
+        # NOTE: get_multitask_loss is from MultitaskCriterion, migrating it seems overkill
         multitask_loss, multitask_log = self.get_multitask_loss(model, sample, extra)
         loss += multitask_loss
         logging_output["multitask"] = multitask_log
 
         return loss, sample_size, logging_output
 
-    def compute_loss(self, model, net_output, sample, reduce=True):
+    def compute_loss(self, model, net_output, sample):
+        # Compute log probabilities from the model's output
         lprobs = model.get_normalized_probs(net_output, log_probs=True).transpose(0, 1)
+
+        # Get the target labels
         target = model.get_targets(sample, net_output)
 
+        # Compute lengths for padding masks
         pad_mask = (sample["target"] != self.pad_idx) & (
             sample["target"] != self.eos_idx
         )
-        targets_flat = sample["target"].masked_select(pad_mask)
         if "target_lengths" in sample:
             target_lengths = sample["target_lengths"]
         else:
@@ -217,6 +213,7 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
                 (lprobs.size(0),), lprobs.size(1), dtype=torch.long
             )
 
+        # Compute the CTC loss
         with torch.backends.cudnn.flags(enabled=False):
             loss = F.ctc_loss(
                 lprobs,
@@ -228,17 +225,10 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
                 zero_infinity=True,
             )
 
-        if self.rdrop_alpha > 0:
-            pad_mask = target[: target.size(0) // 2].unsqueeze(-1).eq(self.padding_idx)
-            rdrop_kl_loss = compute_kl_loss(model, net_output, pad_mask)
-            loss += self.rdrop_alpha * rdrop_kl_loss
-        else:
-            rdrop_kl_loss = loss.new_zeros(1)
-        return loss, loss, rdrop_kl_loss
+        return loss, loss
 
     def compute_accuracy(self, model, net_output, sample):
         lprobs = model.get_normalized_probs(net_output, log_probs=True).transpose(0, 1)
-        target = model.get_targets(sample, net_output)
 
         if net_output[-1]["decoder_padding_mask"] is not None:
             non_padding_mask = ~net_output[-1]["decoder_padding_mask"]
@@ -254,11 +244,9 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
         with torch.no_grad():
             lprobs_t = lprobs.transpose(0, 1).float().contiguous().cpu()
 
+            # Compute edit distance for accuracy
             c_err = 0
             c_len = 0
-            w_errs = 0
-            w_len = 0
-            wv_errs = 0
             for lp, t, inp_l in zip(
                 lprobs_t,
                 (
@@ -270,40 +258,20 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
             ):
                 lp = lp[:inp_l].unsqueeze(0)
 
-                decoded = None
-
+                # Filter out padding and EOS tokens from the target
                 p = (t != self.task.target_dictionary.pad()) & (
                     t != self.task.target_dictionary.eos()
                 )
                 targ = t[p]
-                targ_units = self.task.target_dictionary.string(targ)
                 targ_units_arr = targ.tolist()
 
+                # Get predictions and compute edit distance
                 toks = lp.argmax(dim=-1).unique_consecutive()
                 pred_units_arr = toks[toks != self.blank_idx].tolist()
 
                 c_err += editdistance.eval(pred_units_arr, targ_units_arr)
                 c_len += len(targ_units_arr)
 
-                targ_words = post_process(targ_units, self.post_process).split()
-
-                pred_units = self.task.target_dictionary.string(pred_units_arr)
-                pred_words_raw = post_process(pred_units, self.post_process).split()
-
-                if decoded is not None and "words" in decoded:
-                    pred_words = decoded["words"]
-                    w_errs += editdistance.eval(pred_words, targ_words)
-                    wv_errs += editdistance.eval(pred_words_raw, targ_words)
-                else:
-                    dist = editdistance.eval(pred_words_raw, targ_words)
-                    w_errs += dist
-                    wv_errs += dist
-
-                w_len += len(targ_words)
-
-            logging_output["wv_errors"] = wv_errs
-            logging_output["w_errors"] = w_errs
-            logging_output["w_total"] = w_len
             logging_output["c_errors"] = c_err
             logging_output["c_total"] = c_len
         return (
@@ -312,26 +280,3 @@ class SpeechToUnit2passCTCMultitaskTaskCriterion(
         )
 
 
-def compute_kl_loss(model, net_output, pad_mask=None, reduce=True):
-    net_prob = model.get_normalized_probs(net_output, log_probs=True)
-    net_prob_tec = model.get_normalized_probs(net_output, log_probs=False)
-
-    net_prob = net_prob.view(-1, net_prob.size(-1))
-    net_prob_tec = net_prob_tec.view(-1, net_prob_tec.size(-1))
-
-    p, q = torch.split(net_prob, net_prob.size(0) // 2, dim=0)
-    p_tec, q_tec = torch.split(net_prob_tec, net_prob_tec.size(0) // 2, dim=0)
-
-    p_loss = torch.nn.functional.kl_div(p, q_tec, reduction="none")
-    q_loss = torch.nn.functional.kl_div(q, p_tec, reduction="none")
-
-    if pad_mask is not None:
-        p_loss.masked_fill_(pad_mask, 0.0)
-        q_loss.masked_fill_(pad_mask, 0.0)
-
-    if reduce:
-        p_loss = p_loss.sum()
-        q_loss = q_loss.sum()
-
-    loss = (p_loss + q_loss) / 2
-    return loss
