@@ -126,7 +126,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
         tgt_dict = self.dict["tgt"]
         tgt_dict_asr = self.dict["source_unigram"]
         tgt_dict_st = self.dict["ctc_target_unigram"]
-        args.user_dir=args.agent_dir
+        args.user_dir = args.agent_dir
         utils.import_user_module(args)
         from agent.sequence_generator import SequenceGenerator
         from agent.ctc_generator import CTCSequenceGenerator
@@ -358,7 +358,7 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
             raise IOError("Model file not found: {}".format(filename))
 
         state = checkpoint_utils.load_checkpoint_to_cpu(filename)
-        state["cfg"].common['user_dir']=args.user_dir
+        state["cfg"].common["user_dir"] = args.user_dir
         utils.import_user_module(state["cfg"].common)
 
         task_args = state["cfg"]["task"]
@@ -421,7 +421,6 @@ class StreamSpeechS2STAgent(SpeechToSpeechAgent):
 
     @torch.inference_mode()
     def policy(self):
-
         feature = self.feature_extractor(self.states.source)
 
         if feature.size(0) == 0 and not self.states.source_finished:
