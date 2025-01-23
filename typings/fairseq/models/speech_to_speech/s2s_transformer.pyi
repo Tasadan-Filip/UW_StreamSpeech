@@ -15,7 +15,7 @@ class S2STransformerEncoder(S2TTransformerEncoder):
     def __init__(self, args) -> None:
         ...
     
-    def forward(self, src_tokens, src_lengths, tgt_speaker=..., return_all_hiddens=...): # -> dict[str, list[Any]]:
+    def forward(self, src_tokens, src_lengths, tgt_speaker=..., return_all_hiddens=...):
         ...
     
 
@@ -25,7 +25,7 @@ class TransformerUnitDecoder(TransformerDecoder):
     def __init__(self, args, dictionary, embed_tokens, no_encoder_attn=..., output_projection=...) -> None:
         ...
     
-    def forward(self, prev_output_tokens, encoder_out: Optional[Dict[str, List[Tensor]]] = ..., incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = ..., features_only: bool = ..., full_context_alignment: bool = ..., alignment_layer: Optional[int] = ..., alignment_heads: Optional[int] = ..., src_lengths: Optional[Any] = ..., return_all_hiddens: bool = ...): # -> tuple[Any, dict[str, list[Tensor | None]]]:
+    def forward(self, prev_output_tokens, encoder_out: Optional[Dict[str, List[Tensor]]] = ..., incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = ..., features_only: bool = ..., full_context_alignment: bool = ..., alignment_layer: Optional[int] = ..., alignment_heads: Optional[int] = ..., src_lengths: Optional[Any] = ..., return_all_hiddens: bool = ...): # -> tuple[Any, Any]:
         """
         Args:
             prev_output_tokens (LongTensor): previous decoder outputs of shape
@@ -53,7 +53,7 @@ class TransformerUnitDecoder(TransformerDecoder):
 
 class S2STransformerMultitaskModelBase(FairseqEncoderDecoderModel):
     @classmethod
-    def build_encoder(cls, args): # -> S2STransformerEncoder | FairseqEncoder | FairseqDecoder:
+    def build_encoder(cls, args): # -> S2STransformerEncoder:
         ...
     
     @classmethod
@@ -64,7 +64,7 @@ class S2STransformerMultitaskModelBase(FairseqEncoderDecoderModel):
     def build_model(cls, args, task): # -> Self:
         ...
     
-    def forward_encoder(self, src_tokens, src_lengths, speaker=..., **kwargs):
+    def forward_encoder(self, src_tokens, src_lengths, speaker=..., **kwargs): # -> Any:
         ...
     
 
@@ -72,7 +72,7 @@ class S2STransformerMultitaskModelBase(FairseqEncoderDecoderModel):
 @register_model("s2ut_transformer")
 class S2UTTransformerModel(S2STransformerMultitaskModelBase):
     """
-    Direct speech-to-speech translation model with S2T Transformer encoder + Transformer discrete unit decoder
+    Direct speech-to-speech translation model with Transformer encoder + Transformer discrete unit decoder
     https://arxiv.org/abs/2107.05604
     """
     @staticmethod
@@ -83,7 +83,7 @@ class S2UTTransformerModel(S2STransformerMultitaskModelBase):
     def build_decoder(cls, args, tgt_dict): # -> TransformerUnitDecoder:
         ...
     
-    def forward(self, src_tokens, src_lengths, prev_output_tokens, tgt_speaker=..., return_all_hiddens=...):
+    def forward(self, src_tokens, src_lengths, prev_output_tokens, tgt_speaker=..., return_all_hiddens=...): # -> Any:
         ...
     
 
@@ -101,7 +101,7 @@ class S2SpecTTransformerModel(S2STransformerMultitaskModelBase):
     def build_decoder(cls, args): # -> TTSTransformerDecoder:
         ...
     
-    def forward(self, src_tokens, src_lengths, prev_output_tokens, tgt_speaker=..., incremental_state=..., target_lengths=..., speaker=..., return_all_hiddens=...):
+    def forward(self, src_tokens, src_lengths, prev_output_tokens, tgt_speaker=..., incremental_state=..., target_lengths=..., speaker=..., return_all_hiddens=...): # -> Any:
         ...
     
 

@@ -8,7 +8,9 @@ import logging
 from pathlib import Path
 import typing
 from ctc_unity.modules.simultaneous_text_decoder import SimultaneousTextDecoder
-from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder import StreamingSpeechEncoder
+from ctc_unity.modules.streaming_speech_encoder.streaming_speech_encoder import (
+    StreamingSpeechEncoder,
+)
 import torch
 from typing import OrderedDict, Protocol
 
@@ -18,10 +20,10 @@ from fairseq.models import (
     register_model,
     register_model_architecture,
 )
-from fairseq.models.speech_to_speech.modules import CTCDecoder
-from fairseq.models.speech_to_speech.modules import StackedEmbedding
+from fairseq.models.speech_to_speech.modules.ctc_decoder import CTCDecoder
+from fairseq.models.speech_to_speech.modules.stacked_embedding import StackedEmbedding
 from ctc_unity.modules.text_to_unit_encoder.text_to_unit_encoder import (
-    TextToUnitEncoder
+    TextToUnitEncoder,
 )
 from fairseq.models.speech_to_speech.s2s_transformer import (
     base_multitask_text_transformer_decoder_arch,
@@ -36,11 +38,11 @@ from fairseq.models.transformer import TransformerConfig
 from fairseq.models import FairseqEncoderDecoderModel
 
 from researches.types import register_model_uw
+
 if typing.TYPE_CHECKING:
     from researches.ctc_unity.tasks.speech_to_speech_uw import UWSpeechToSpeechTask
 
 logger = logging.getLogger(__name__)
-
 
 
 @register_model("streamspeech")
@@ -48,16 +50,14 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
     """
     Direct speech-to-speech translation model with Conformer encoder + MT Transformer decoder + Transformer discrete unit decoder
     """
+
     class Args(Protocol):
         encoder_embed_dim: int
 
     @classmethod
     def build_model(cls, args: Args, task: "UWSpeechToSpeechTask"):
         streaming_speech_encoder = cls._build_streaming_speech_encoder(args)
-        unit_ctc_decoder = cls._build_unit_ctc_decoder(
-            args,
-            task.target_dictionary
-        )
+        unit_ctc_decoder = cls._build_unit_ctc_decoder(args, task.target_dictionary)
         base_model = cls(streaming_speech_encoder, unit_ctc_decoder)
 
         base_model.t2u_augmented_cross_attn = getattr(
@@ -94,7 +94,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
                 decoder_model_cls = FairseqEncoderModel
             else:
                 decoder_model_cls = FairseqLanguageModel
-            
+
             base_model.multitask_decoders[task_name] = decoder_model_cls(
                 getattr(base_model, f"{task_name}_decoder")
             )
@@ -103,7 +103,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
 
         # set up encoder on top of the auxiliary MT decoder
         if getattr(args, "synthesizer_encoder_layers", 0) > 0:
-            #TODO: clean this method
+            # TODO: clean this method
             base_model.synthesizer_encoder = cls._build_text_to_unit_encoder(args)
         else:
             base_model.synthesizer_encoder = None
@@ -129,7 +129,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
             )
 
         return base_model
-    
+
     def forward(
         self,
         src_tokens,
@@ -439,7 +439,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
             metavar="N",
             help="speaker embedding dimension",
         )
-        
+
         parser.add_argument(
             "--depthwise-conv-kernel-size",
             type=int,
@@ -480,12 +480,12 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         decoder_args.encoder_embed_dim = in_dim
         if args.decoder_type == "transformer":
             cls._build_simultaneous_text_decoder_arguments(
-                    decoder_args,
-                    decoder_layers,
-                    decoder_embed_dim,
-                    decoder_attention_heads,
-                ) 
-                
+                decoder_args,
+                decoder_layers,
+                decoder_embed_dim,
+                decoder_attention_heads,
+            )
+
             task_decoder = SimultaneousTextDecoder(
                 TransformerConfig.from_namespace(decoder_args),
                 tgt_dict,
@@ -493,13 +493,10 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
                     decoder_args,
                     tgt_dict,
                     decoder_args.decoder_embed_dim,
-                )
+                ),
             )
         elif args.decoder_type == "ctc":
-            task_decoder = CTCDecoder(
-                    dictionary=tgt_dict,
-                    in_dim=in_dim
-                )
+            task_decoder = CTCDecoder(dictionary=tgt_dict, in_dim=in_dim)
         else:
             raise NotImplementedError(
                 "currently only support multitask decoder_type 'transformer', 'ctc'"
@@ -526,7 +523,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
             tgt_dict,
             embed_tokens,
         )
-    
+
     @classmethod
     def _build_streaming_speech_encoder(cls, args):
         encoder = StreamingSpeechEncoder(args)
@@ -552,9 +549,11 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         _args.encoder_attention_heads = args.decoder_attention_heads
         _args.encoder_normalize_before = True
         return TextToUnitEncoder(_args)
-    
+
     @classmethod
-    def _build_simultaneous_text_decoder_arguments(cls, args, decoder_layers, decoder_embed_dim=256, decoder_attention_heads=4):
+    def _build_simultaneous_text_decoder_arguments(
+        cls, args, decoder_layers, decoder_embed_dim=256, decoder_attention_heads=4
+    ):
         args.decoder_layers = decoder_layers
         args.decoder_embed_dim = decoder_embed_dim
         args.decoder_attention_heads = decoder_attention_heads
@@ -578,6 +577,7 @@ class StreamSpeechModel(FairseqEncoderDecoderModel):
         tmp3 = torch.arange(0, src_len, device=st.device).unsqueeze(0).unsqueeze(1)
 
         return tmp3 >= idx2
+
 
 @register_model_architecture(model_name="streamspeech", arch_name="streamspeech")
 def ctc_unity_conformer_architecture_base(args):
