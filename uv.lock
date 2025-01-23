@@ -6,12 +6,6 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
-[manifest]
-members = [
-    "simuleval",
-    "uw-streamspeech",
-]
-
 [[package]]
 name = "antlr4-python3-runtime"
 version = "4.8"
@@ -1388,8 +1382,8 @@ wheels = [
 
 [[package]]
 name = "simuleval"
-version = "0.1.0"
-source = { editable = "SimulEval" }
+version = "1.1.4"
+source = { git = "https://github.com/facebookresearch/SimulEval?rev=a1435b65331cac9d62ea8047fe3344153d7e7dac#a1435b65331cac9d62ea8047fe3344153d7e7dac" }
 dependencies = [
     { name = "bitarray" },
     { name = "pandas" },
@@ -1404,24 +1398,6 @@ dependencies = [
     { name = "textgrid" },
     { name = "tornado" },
     { name = "tqdm" },
-    { name = "yt-dlp" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bitarray", specifier = "==2.6.0" },
-    { name = "pandas" },
-    { name = "pydub" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-flake8" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "sacrebleu", specifier = "==2.3.1" },
-    { name = "soundfile" },
-    { name = "textgrid" },
-    { name = "tornado" },
-    { name = "tqdm", specifier = "==4.64.1" },
     { name = "yt-dlp" },
 ]
 
@@ -1721,7 +1697,7 @@ requires-dist = [
     { name = "ffmpeg", specifier = ">=1.4" },
     { name = "numpy", specifier = ">=1.26,<2.0" },
     { name = "sentencepiece", specifier = ">=0.2.0" },
-    { name = "simuleval", editable = "SimulEval" },
+    { name = "simuleval", git = "https://github.com/facebookresearch/SimulEval?rev=a1435b65331cac9d62ea8047fe3344153d7e7dac" },
     { name = "sox", specifier = ">=1.5.0" },
     { name = "torch", specifier = "==2.0.1" },
     { name = "torchaudio", specifier = "==2.0.2" },

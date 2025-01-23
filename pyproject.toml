@@ -12,21 +12,19 @@ dependencies = [
     "torch==2.0.1",
     "torchaudio==2.0.2",
     "torchvision==0.15.2",
-    "simuleval",
     "editdistance",
     "sentencepiece>=0.2.0",
     "fairseq",
+    "simuleval",
 ]
 
 [tool.uv]
 cache-dir = ".uv-cache/"
 
 [tool.uv.sources]
-simuleval = { workspace = true }
 fairseq = { git = "https://github.com/facebookresearch/fairseq", rev = "d9a627082fd03ec72a27a31a4e56289bfcb2e4e4" }
+simuleval = { git = "https://github.com/facebookresearch/SimulEval", rev = "a1435b65331cac9d62ea8047fe3344153d7e7dac" }
 
-[tool.uv.workspace]
-members = ["SimulEval"]
 
 [dependency-groups]
 dev = [
